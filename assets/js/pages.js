@@ -291,6 +291,16 @@ function pageEvent() {
 // ========================================================================
 function pageApply() {
   const st = window.RR_APP.applyState;
+  if (st.step === 1 && !isApplyPeriodOpen()) {
+    return `
+      ${pageHeaderBlock('참가 신청', "2026 River Run '세종' 참가신청")}
+      <section class="section">
+        <div class="container" style="max-width: 840px;">
+          ${renderApplyClosedPanel()}
+        </div>
+      </section>
+    `;
+  }
   return `
     ${pageHeaderBlock('참가 신청', "2026 River Run '세종' 참가신청")}
     <section class="section">
@@ -301,6 +311,21 @@ function pageApply() {
         </div>
       </div>
     </section>
+  `;
+}
+
+function renderApplyClosedPanel() {
+  const ev = RR_STORE.state.event;
+  const beforeOpen = new Date() < new Date(ev.applyOpen);
+  const title = beforeOpen ? '접수 시작 전입니다' : '접수가 마감되었습니다';
+  return `
+    <div class="form-panel" style="text-align:center;padding:60px 24px;">
+      <h2 class="form-title">${title}</h2>
+      <div class="form-lead" style="margin-top:8px;">접수 기간: ${RR_FMT.dateTime(ev.applyOpen)} ~ ${RR_FMT.dateTime(ev.applyClose)}</div>
+      <div style="margin-top:24px;">
+        <a href="/" class="btn btn-primary">홈으로</a>
+      </div>
+    </div>
   `;
 }
 
@@ -659,9 +684,11 @@ function renderLookupSearch() {
   `;
 }
 
-function isBeforeApplyDeadline() {
+// 접수 시작 ~ 접수 마감 사이인지 — 신규 신청, 접수확인 후 정보 수정 모두 이 기간에만 가능
+function isApplyPeriodOpen() {
   const ev = RR_STORE.state.event;
-  return new Date() <= new Date(ev.applyClose);
+  const now = new Date();
+  return now >= new Date(ev.applyOpen) && now <= new Date(ev.applyClose);
 }
 
 function renderLookupConfirm(record) {
@@ -671,8 +698,11 @@ function renderLookupConfirm(record) {
   const address = record.type === 'individual'
     ? record.address
     : (record.members && record.members[0] ? record.members[0].address : '');
-  const editOpen = isBeforeApplyDeadline();
+  const editOpen = isApplyPeriodOpen();
   const ev = RR_STORE.state.event;
+  const editClosedReason = new Date() < new Date(ev.applyOpen)
+    ? `접수 시작(${RR_FMT.dateTime(ev.applyOpen)}) 이전에는 정보 수정이 불가합니다.`
+    : `접수 마감(${RR_FMT.dateTime(ev.applyClose)}) 이후에는 정보 수정이 불가합니다.`;
   return `
     <div class="lookup-result">
       <h3>참가신청 확인 완료</h3>
@@ -687,11 +717,15 @@ function renderLookupConfirm(record) {
           : `<div class="dl-row"><div class="dl-term">참가 인원</div><div class="dl-desc">${(record.members || []).length}명</div></div>`
         }
         <div class="dl-row"><div class="dl-term">입금상태</div><div class="dl-desc">${window.paymentBadge(record.paymentStatus)}</div></div>
+        ${ev.bankName && ev.accountNumber
+          ? `<div class="dl-row"><div class="dl-term">계좌번호</div><div class="dl-desc">${ev.bankName} ${ev.accountNumber}${ev.accountHolder ? ` (예금주 ${ev.accountHolder})` : ''}</div></div>`
+          : ''
+        }
         <div class="dl-row"><div class="dl-term">신청일시</div><div class="dl-desc">${RR_FMT.dateTimeUTC(record.createdAt)}</div></div>
       </div>
       <div class="lookup-result-actions">
         <button class="btn btn-outline btn-block" id="lookupEditBtn" ${editOpen ? '' : 'disabled'}>참가 정보 수정</button>
-        ${editOpen ? '' : `<div class="field-help" style="text-align:center;margin-top:8px;">접수 마감(${RR_FMT.dateTime(ev.applyClose)}) 이후에는 정보 수정이 불가합니다.</div>`}
+        ${editOpen ? '' : `<div class="field-help" style="text-align:center;margin-top:8px;">${editClosedReason}</div>`}
       </div>
     </div>
   `;

@@ -446,6 +446,7 @@
 
     const submit = document.getElementById('applySubmit');
     if (submit) submit.addEventListener('click', async () => {
+      if (!isApplyPeriodOpen()) { toast('접수 기간이 아닙니다.'); return; }
       const data = {};
       let ok = true;
       document.querySelectorAll('[data-f]').forEach(inp => {
@@ -670,6 +671,7 @@
 
     const saveBtn = document.getElementById('lookupEditSave');
     if (saveBtn) saveBtn.addEventListener('click', async () => {
+      if (!isApplyPeriodOpen()) { toast('접수 기간이 아닙니다.'); return; }
       const data = {};
       let ok = true;
       document.querySelectorAll('[data-ef]').forEach(inp => {
