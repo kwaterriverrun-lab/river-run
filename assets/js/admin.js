@@ -63,7 +63,7 @@ function adminLogin() {
 // =====================================================================
 function adminShell(tab, contentHTML) {
   const nav = ADMIN_MENU.map(m => `
-    <a href="#/admin/${m.key}" data-admin-menu="${m.key}" class="${tab === m.key ? 'active' : ''}">
+    <a href="/admin/${m.key}" data-admin-menu="${m.key}" class="${tab === m.key ? 'active' : ''}">
       <span style="width:16px;height:16px;display:inline-flex;">${m.icon}</span>
       ${m.label}
     </a>
@@ -149,7 +149,7 @@ function adminDashboard() {
     </div>
 
     <div class="admin-panel">
-      <div class="admin-panel-head"><h3>최근 신청 5건</h3><a href="#/admin/applicants" style="font-size:13px;color:var(--kw-blue);">전체 보기</a></div>
+      <div class="admin-panel-head"><h3>최근 신청 5건</h3><a href="/admin/applicants" style="font-size:13px;color:var(--kw-blue);">전체 보기</a></div>
       <div class="admin-panel-body p0">
         <table class="admin-table">
           <thead>
@@ -258,7 +258,7 @@ function adminPace() {
     <div class="admin-page-head">
       <div>
         <h1>페이스 그룹별 신청 현황</h1>
-        <p>참가자가 자유롭게 선택하는 그룹별 신청 인원 통계입니다. 선착순 마감 기준은 정원이 아니라 <a href="#/admin/event" style="color:var(--kw-blue);">행사 정보</a>의 "모집 정원(전체)"입니다.</p>
+        <p>참가자가 자유롭게 선택하는 그룹별 신청 인원 통계입니다. 선착순 마감 기준은 정원이 아니라 <a href="/admin/event" style="color:var(--kw-blue);">행사 정보</a>의 "모집 정원(전체)"입니다.</p>
       </div>
     </div>
 

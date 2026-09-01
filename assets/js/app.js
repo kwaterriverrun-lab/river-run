@@ -7,45 +7,45 @@
   // ================================
   const SITE_NAME = "2026 River Run '세종'";
   const PUBLIC_ROUTES = {
-    '#/':        { render: () => RR_PAGES.pageHome(),    menuKey: 'home',
+    '/':        { render: () => RR_PAGES.pageHome(),    menuKey: 'home',
       title: `${SITE_NAME} — 우리 강·하천 달리기`,
       description: "2026 River Run '세종' - 우리 강·하천에서 달리는 10km 러닝 이벤트. 2026.10.17(토) 세종보 홍보관." },
-    '#/about':   { render: () => RR_PAGES.pageAbout(),   menuKey: 'about',
+    '/about':   { render: () => RR_PAGES.pageAbout(),   menuKey: 'about',
       title: `River Run 소개 — ${SITE_NAME}`,
       description: "A River is the Best Stage for Running! K-water가 만드는 강변·하천 러닝 문화, River Run을 소개합니다." },
-    '#/event':   { render: () => RR_PAGES.pageEvent(),   menuKey: 'event',
+    '/event':   { render: () => RR_PAGES.pageEvent(),   menuKey: 'event',
       title: `대회 안내 — ${SITE_NAME}`,
       description: "2026.10.17(토) 세종보 홍보관에서 열리는 10km 러닝 대회의 코스, 참가 기념품, 주차 안내." },
-    '#/apply':   { render: () => RR_PAGES.pageApply(),   menuKey: 'apply',
+    '/apply':   { render: () => RR_PAGES.pageApply(),   menuKey: 'apply',
       title: `참가 신청 — ${SITE_NAME}`,
       description: "2026 River Run '세종' 10km 러닝 대회 참가 신청. 개인·단체 신청이 가능합니다." },
-    '#/lookup':  { render: () => RR_PAGES.pageLookup(),  menuKey: 'lookup',
+    '/lookup':  { render: () => RR_PAGES.pageLookup(),  menuKey: 'lookup',
       title: `접수 확인 — ${SITE_NAME}`,
       description: "이름·연락처·비밀번호로 River Run '세종' 참가 신청 내역을 확인하세요." },
-    '#/notice':  { render: () => RR_PAGES.pageNotice(),  menuKey: 'notice',
+    '/notice':  { render: () => RR_PAGES.pageNotice(),  menuKey: 'notice',
       title: `공지사항 — ${SITE_NAME}`,
       description: "2026 River Run '세종' 대회 관련 공지사항을 확인하세요." },
-    '#/gallery': { render: () => RR_PAGES.pageGallery(), menuKey: 'gallery',
+    '/gallery': { render: () => RR_PAGES.pageGallery(), menuKey: 'gallery',
       title: `갤러리 — ${SITE_NAME}`,
       description: "River Run '세종' 대회 현장 갤러리." },
-    '#/privacy': { render: () => RR_PAGES.pagePrivacy(), menuKey: '',
+    '/privacy': { render: () => RR_PAGES.pagePrivacy(), menuKey: '',
       title: `개인정보처리방침 — ${SITE_NAME}`,
       description: "2026 River Run '세종' 개인정보처리방침 안내." },
-    '#/terms':   { render: () => RR_PAGES.pageTerms(),   menuKey: '',
+    '/terms':   { render: () => RR_PAGES.pageTerms(),   menuKey: '',
       title: `이용약관 — ${SITE_NAME}`,
       description: "2026 River Run '세종' 이용약관 안내." },
-    '#/refund':  { render: () => RR_PAGES.pageRefund(),  menuKey: '',
+    '/refund':  { render: () => RR_PAGES.pageRefund(),  menuKey: '',
       title: `환불정책 — ${SITE_NAME}`,
       description: "2026 River Run '세종' 환불정책 안내." }
   };
   const ADMIN_ROUTES = {
-    '#/admin':            () => RR_ADMIN.adminDashboard(),
-    '#/admin/dashboard':  () => RR_ADMIN.adminDashboard(),
-    '#/admin/applicants': () => RR_ADMIN.adminApplicants(),
-    '#/admin/pace':       () => RR_ADMIN.adminPace(),
-    '#/admin/notice':     () => RR_ADMIN.adminNotice(),
-    '#/admin/gallery':    () => RR_ADMIN.adminGallery(),
-    '#/admin/event':      () => RR_ADMIN.adminEvent(),
+    '/admin':            () => RR_ADMIN.adminDashboard(),
+    '/admin/dashboard':  () => RR_ADMIN.adminDashboard(),
+    '/admin/applicants': () => RR_ADMIN.adminApplicants(),
+    '/admin/pace':       () => RR_ADMIN.adminPace(),
+    '/admin/notice':     () => RR_ADMIN.adminNotice(),
+    '/admin/gallery':    () => RR_ADMIN.adminGallery(),
+    '/admin/event':      () => RR_ADMIN.adminEvent(),
   };
 
   const APP = window.RR_APP = {
@@ -63,19 +63,45 @@
   }
 
   // ================================
-  // Router
+  // Router (History API / pushState — no "#/" in URLs)
   // ================================
+  function normalizePath(p) {
+    if (p.length > 1 && p.endsWith('/')) return p.slice(0, -1);
+    return p || '/';
+  }
+
   function initRoute() {
-    if (!location.hash) {
+    // 루트('/')로 들어왔을 때만, 마지막으로 보던 경로가 있으면 그쪽으로 복원 (뒤로가기 기록은 남기지 않음)
+    if (location.pathname === '/') {
       const saved = localStorage.getItem('rr_route');
-      location.hash = (saved && (PUBLIC_ROUTES[saved] || ADMIN_ROUTES[saved])) ? saved : '#/';
+      if (saved && saved !== '/' && (PUBLIC_ROUTES[saved] || ADMIN_ROUTES[saved])) {
+        history.replaceState({}, '', saved);
+      }
     }
   }
 
+  function navigate(path, opts = {}) {
+    path = normalizePath(path);
+    if (normalizePath(location.pathname) !== path) {
+      if (opts.replace) history.replaceState({}, '', path);
+      else history.pushState({}, '', path);
+    }
+    onRouteChange();
+  }
+
+  function onRouteChange() {
+    const path = normalizePath(location.pathname);
+    // Reset apply state when leaving apply route
+    if (!path.startsWith('/apply') && APP.applyState.step !== 1) {
+      APP.applyState = newApplyState();
+    }
+    render();
+  }
+
   async function render() {
-    const hash = location.hash || '#/';
-    localStorage.setItem('rr_route', hash);
-    const isAdmin = hash.startsWith('#/admin');
+    const path = normalizePath(location.pathname);
+    localStorage.setItem('rr_route', path);
+    const isAdmin = path.startsWith('/admin');
 
     // Show/hide public header & footer
     document.getElementById('header').style.display = isAdmin ? 'none' : '';
@@ -83,23 +109,23 @@
     document.getElementById('adminHeader').style.display = isAdmin ? '' : 'none';
 
     if (isAdmin) {
-      await renderAdmin(hash);
+      await renderAdmin(path);
     } else {
-      renderPublic(hash);
+      renderPublic(path);
     }
     window.scrollTo({ top: 0, behavior: 'instant' });
     closeMobileMenu();
   }
 
-  function renderPublic(hash) {
-    const route = PUBLIC_ROUTES[hash] || PUBLIC_ROUTES['#/'];
+  function renderPublic(path) {
+    const route = PUBLIC_ROUTES[path] || PUBLIC_ROUTES['/'];
     document.getElementById('view').innerHTML = route.render();
     updateActiveNav(route.menuKey);
-    updateMeta(route.title, route.description);
-    bindPageHandlers(hash);
+    updateMeta(route.title, route.description, path);
+    bindPageHandlers(path);
   }
 
-  function updateMeta(title, description) {
+  function updateMeta(title, description, path) {
     if (title) document.title = title;
     if (description) {
       const desc = document.querySelector('meta[name="description"]');
@@ -113,21 +139,28 @@
     if (ogDesc && description) ogDesc.setAttribute('content', description);
     const twDesc = document.querySelector('meta[name="twitter:description"]');
     if (twDesc && description) twDesc.setAttribute('content', description);
+    if (path) {
+      const url = location.origin + path;
+      const canonical = document.querySelector('link[rel="canonical"]');
+      if (canonical) canonical.setAttribute('href', url);
+      const ogUrl = document.querySelector('meta[property="og:url"]');
+      if (ogUrl) ogUrl.setAttribute('content', url);
+    }
   }
 
-  async function renderAdmin(hash) {
-    updateMeta(`관리자 — ${SITE_NAME}`, null);
+  async function renderAdmin(path) {
+    updateMeta(`관리자 — ${SITE_NAME}`, null, path);
     // Auth gate
     if (!APP.admin.session) {
       document.getElementById('view').innerHTML = RR_ADMIN.adminLogin();
       bindAdminLogin();
       return;
     }
-    const tabKey = hash.replace('#/admin/', '').replace('#/admin', 'dashboard') || 'dashboard';
+    const tabKey = path.replace('/admin/', '').replace('/admin', 'dashboard') || 'dashboard';
     if (tabKey === 'dashboard' || tabKey === 'applicants' || tabKey === '') {
       await RR_STORE.loadApplicantsFromSupabase();
     }
-    const renderFn = ADMIN_ROUTES[hash] || ADMIN_ROUTES['#/admin/dashboard'];
+    const renderFn = ADMIN_ROUTES[path] || ADMIN_ROUTES['/admin/dashboard'];
     document.getElementById('view').innerHTML = renderFn();
     bindAdminCommon();
     if (tabKey === 'dashboard' || tabKey === '') bindAdminDashboard();
@@ -738,16 +771,16 @@
   // ================================
   // Page-specific bindings
   // ================================
-  function bindPageHandlers(hash) {
+  function bindPageHandlers(path) {
     clearInterval(ddayTimer);
     clearInterval(heroTimer);
-    if (hash === '#/') {
+    if (path === '/') {
       tickDday('ddayCount', true);
       ddayTimer = setInterval(() => tickDday('ddayCount', true), 1000);
       bindHeroSlideshow();
     }
 
-    if (hash === '#/apply') {
+    if (path === '/apply') {
       bindApplyHandlers();
       if (APP.applyState.totalApplied == null) {
         RR_STORE.getTotalApplied().then(n => {
@@ -756,8 +789,8 @@
         });
       }
     }
-    if (hash === '#/lookup') bindLookup();
-    if (hash === '#/notice') bindNoticeList();
+    if (path === '/lookup') bindLookup();
+    if (path === '/notice') bindNoticeList();
     bindImageZoom();
   }
 
@@ -839,8 +872,7 @@
       if (id === 'admin' && pw === 'admin2026') {
         APP.admin.session = true;
         sessionStorage.setItem('rr_admin_session', '1');
-        location.hash = '#/admin/dashboard';
-        render();
+        navigate('/admin/dashboard');
       } else {
         toast('아이디 또는 비밀번호가 올바르지 않습니다.');
       }
@@ -856,8 +888,7 @@
     if (logout) logout.addEventListener('click', () => {
       APP.admin.session = false;
       sessionStorage.removeItem('rr_admin_session');
-      location.hash = '#/';
-      render();
+      navigate('/');
     });
   }
 
@@ -1313,12 +1344,18 @@
     document.querySelectorAll('#mobileMenu a').forEach(a => {
       a.addEventListener('click', () => setTimeout(closeMobileMenu, 40));
     });
-    window.addEventListener('hashchange', () => {
-      // Reset apply state when leaving apply route
-      if (!location.hash.startsWith('#/apply') && APP.applyState.step !== 1) {
-        APP.applyState = newApplyState();
-      }
-      render();
+    window.addEventListener('popstate', onRouteChange);
+    // 같은 origin의 내부 링크(<a href="/...">) 클릭을 가로채 pushState로 전환 — 전체 새로고침 없이 이동
+    document.addEventListener('click', (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target.closest('a');
+      if (!a || !a.href) return;
+      if (a.target && a.target !== '_self') return;
+      if (a.hasAttribute('download')) return;
+      const url = new URL(a.href, location.href);
+      if (url.origin !== location.origin) return;
+      e.preventDefault();
+      navigate(url.pathname);
     });
     await Promise.all([
       RR_STORE.loadEventFromSupabase(),

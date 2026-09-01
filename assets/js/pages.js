@@ -21,9 +21,9 @@ function shortDateTime(iso) {
 // ========================================================================
 function pageHome() {
   const slides = [
-    'assets/img/hero-1.jpg',
-    'assets/img/hero-2.jpg',
-    'assets/img/hero-3.jpg'
+    '/assets/img/hero-1.jpg',
+    '/assets/img/hero-2.jpg',
+    '/assets/img/hero-3.jpg'
   ];
   return `
     <section class="hero hero-slideshow" id="heroSlideshow">
@@ -55,7 +55,7 @@ function pageHome() {
               <div class="hero-dday-unit"><span class="hero-dday-num" data-unit="s">--</span><span class="hero-dday-unit-label">SEC</span></div>
             </div>
           </div>
-          <a href="#/apply" class="hero-dday-cta">
+          <a href="/apply" class="hero-dday-cta">
             대회 신청하기 <span class="hero-dday-cta-arrow">→</span>
           </a>
         </div>
@@ -75,8 +75,8 @@ function pageHome() {
             시민들이 자연 속에서 건강하게 즐기는 러닝 문화를 만들어 가기 위해 마련한 대회입니다.
           </p>
           <div class="home-shortcuts">
-            <a href="#/about" class="btn btn-outline">River Run 소개</a>
-            <a href="#/event" class="btn btn-outline">대회 안내</a>
+            <a href="/about" class="btn btn-outline">River Run 소개</a>
+            <a href="/event" class="btn btn-outline">대회 안내</a>
           </div>
         </div>
       </div>
@@ -96,16 +96,16 @@ function pageAbout() {
   ];
 
   const rows = [
-    { img: 'assets/img/ms1-riverside-running.jpg', desc: '남녀노소 누구나 편하고 안전하게 뛸 수 있는', highlight: '강·하천 친화형 러닝코스', tail: '이자,' },
-    { img: 'assets/img/ms2-medal.jpg',              desc: '원하는 시간과 장소에서 자유롭게 즐길 수 있는', highlight: '도전·성취형 러닝 프로그램', tail: '이며,' },
-    { img: 'assets/img/ms3-highfive.jpg',           desc: '공공과 민간, 지역과 시민이 함께 하는',         highlight: '대국민 생활체육 러닝 거버넌스', tail: '입니다.' }
+    { img: '/assets/img/ms1-riverside-running.jpg', desc: '남녀노소 누구나 편하고 안전하게 뛸 수 있는', highlight: '강·하천 친화형 러닝코스', tail: '이자,' },
+    { img: '/assets/img/ms2-medal.jpg',              desc: '원하는 시간과 장소에서 자유롭게 즐길 수 있는', highlight: '도전·성취형 러닝 프로그램', tail: '이며,' },
+    { img: '/assets/img/ms3-highfive.jpg',           desc: '공공과 민간, 지역과 시민이 함께 하는',         highlight: '대국민 생활체육 러닝 거버넌스', tail: '입니다.' }
   ];
 
   const courses = [
-    { img: 'assets/img/course-yeoju.png',     name: '한강 (여주)',        location: '경기 여주시 · 여주보 · 남한강',   distance: '5K / 7K 반환' },
-    { img: 'assets/img/course-seungchon.png', name: '영산강 (광주-나주)', location: '광주 남구 · 승촌보 · 영산강',     distance: '1K / 5K 반환' },
-    { img: 'assets/img/course-gangjeong.png', name: '낙동강 (대구-고령)', location: '대구 달성군 · 강정고령보 · 낙동강', distance: '5K / 10K 반환' },
-    { img: 'assets/img/course-sejong.png',    name: '금강 (세종)',        location: '세종시 · 세종보 · 금강',           distance: '5K / 10K 반환' }
+    { img: '/assets/img/course-yeoju.png',     name: '한강 (여주)',        location: '경기 여주시 · 여주보 · 남한강',   distance: '5K / 7K 반환' },
+    { img: '/assets/img/course-seungchon.png', name: '영산강 (광주-나주)', location: '광주 남구 · 승촌보 · 영산강',     distance: '1K / 5K 반환' },
+    { img: '/assets/img/course-gangjeong.png', name: '낙동강 (대구-고령)', location: '대구 달성군 · 강정고령보 · 낙동강', distance: '5K / 10K 반환' },
+    { img: '/assets/img/course-sejong.png',    name: '금강 (세종)',        location: '세종시 · 세종보 · 금강',           distance: '5K / 10K 반환' }
   ];
 
   return `
@@ -180,7 +180,7 @@ function pageAbout() {
         </div>
 
         <div style="text-align: center; margin-top: 40px;">
-          <a href="#/event" class="btn btn-primary btn-lg">2026 대회 안내 보기</a>
+          <a href="/event" class="btn btn-primary btn-lg">2026 대회 안내 보기</a>
         </div>
       </div>
     </section>
@@ -200,8 +200,8 @@ function pageEvent() {
         <div class="block">
           <div class="block-head"><h3>코스 안내</h3></div>
           <div class="block-body">
-            <button class="course-map-photo zoom-trigger" data-zoom-src="assets/course-map.png" data-zoom-title="2026 River Run '세종' · 10km 코스" aria-label="코스 지도 확대">
-              <img src="assets/course-map.png" alt="10km 코스 지도">
+            <button class="course-map-photo zoom-trigger" data-zoom-src="/assets/course-map.png" data-zoom-title="2026 River Run '세종' · 10km 코스" aria-label="코스 지도 확대">
+              <img src="/assets/course-map.png" alt="10km 코스 지도">
               <span class="course-card-zoom-hint">클릭하여 확대</span>
             </button>
 
@@ -265,7 +265,7 @@ function pageEvent() {
               <strong>행사장 내 주차공간이 매우 협소합니다.</strong>
               가급적 대중교통을 이용해 주시고, 행사장 주차장 만차 시 아래 인근 주차장을 이용해 주시기 바랍니다.
             </div>
-            <img src="assets/parking-map.png" alt="주차장 지도" style="border-radius: var(--r-md); border: 1px solid var(--border); margin-bottom: 20px;">
+            <img src="/assets/parking-map.png" alt="주차장 지도" style="border-radius: var(--r-md); border: 1px solid var(--border); margin-bottom: 20px;">
             <div class="dl">
               <div class="dl-row"><div class="dl-term">행사장</div><div class="dl-desc">세종보 주차장 · 세종시 세종동 551-190</div></div>
               <div class="dl-row"><div class="dl-term">인근 ①</div><div class="dl-desc">한솔동 주차장 · 세종시 한솔동 961-1</div></div>
@@ -277,7 +277,7 @@ function pageEvent() {
         </div>
 
         <div style="text-align: center; margin-top: 36px;">
-          <a href="#/apply" class="btn btn-primary btn-lg">참가 신청하기</a>
+          <a href="/apply" class="btn btn-primary btn-lg">참가 신청하기</a>
         </div>
       </div>
     </section>
@@ -330,7 +330,7 @@ const APPLY_TYPE_MIN_REMAIN = { individual: 1, family: 7, group: 15 };
 
 function renderStep1Type() {
   const st = window.RR_APP.applyState;
-  // totalApplied는 #/apply 진입 시 비동기로 미리 받아와 st에 캐시해둔 값 (renderStep1Type 자체는 동기 렌더 함수라서)
+  // totalApplied는 /apply 진입 시 비동기로 미리 받아와 st에 캐시해둔 값 (renderStep1Type 자체는 동기 렌더 함수라서)
   const remaining = RR_STORE.state.event.maxCapacity - (st.totalApplied ?? 0);
   const options = [
     { id: 'individual', title: '개인', desc: '1인 신청' },
@@ -358,7 +358,7 @@ function renderStep1Type() {
     </div>
 
     <div class="form-nav">
-      <button class="btn btn-ghost" onclick="location.hash='#/'">홈으로</button>
+      <a href="/" class="btn btn-ghost">홈으로</a>
       <button class="btn btn-primary" id="applyNext1" ${st.type ? '' : 'disabled'}>다음 단계</button>
     </div>
   `;
@@ -596,8 +596,8 @@ function renderStep4Done() {
       ${renderDepositNotice()}
 
       <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-        <a href="#/lookup" class="btn btn-outline">접수 확인하기</a>
-        <a href="#/" class="btn btn-primary">홈으로</a>
+        <a href="/lookup" class="btn btn-outline">접수 확인하기</a>
+        <a href="/" class="btn btn-primary">홈으로</a>
       </div>
     </div>
   `;
@@ -1144,7 +1144,7 @@ function pageHeaderBlock(crumb, title) {
   return `
     <section class="page-header">
       <div class="container">
-        <nav class="breadcrumb"><a href="#/">홈</a><span class="sep">›</span><span>${crumb}</span></nav>
+        <nav class="breadcrumb"><a href="/">홈</a><span class="sep">›</span><span>${crumb}</span></nav>
         <h1>${title}</h1>
       </div>
     </section>

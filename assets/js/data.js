@@ -97,12 +97,12 @@ const DEFAULTS = {
   ],
 
   gallery: [
-    { id: 1, src: 'assets/img/gallery-01-start.jpg',  caption: '출발선의 열기' },
-    { id: 2, src: 'assets/img/gallery-02-finish.jpg', caption: '완주의 순간' },
-    { id: 3, src: 'assets/img/gallery-03-pacer.jpg',  caption: '함께 달리는 페이스 그룹' },
-    { id: 4, src: 'assets/img/gallery-04-aid.jpg',    caption: '든든한 보급소' },
-    { id: 5, src: 'assets/img/gallery-05-medal.jpg',  caption: '완주 메달' },
-    { id: 6, src: 'assets/img/gallery-06-family.jpg', caption: '가족과 함께한 특별한 하루' }
+    { id: 1, src: '/assets/img/gallery-01-start.jpg',  caption: '출발선의 열기' },
+    { id: 2, src: '/assets/img/gallery-02-finish.jpg', caption: '완주의 순간' },
+    { id: 3, src: '/assets/img/gallery-03-pacer.jpg',  caption: '함께 달리는 페이스 그룹' },
+    { id: 4, src: '/assets/img/gallery-04-aid.jpg',    caption: '든든한 보급소' },
+    { id: 5, src: '/assets/img/gallery-05-medal.jpg',  caption: '완주 메달' },
+    { id: 6, src: '/assets/img/gallery-06-family.jpg', caption: '가족과 함께한 특별한 하루' }
   ],
 
   faqs: [

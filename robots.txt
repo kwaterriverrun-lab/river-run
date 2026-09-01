@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /admin
 
-Sitemap: https://your-domain.vercel.app/sitemap.xml
+Sitemap: https://www.river-run.kr/sitemap.xml

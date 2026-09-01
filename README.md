@@ -39,7 +39,7 @@
 
 ### 공개 사이트 (7개 페이지)
 
-#### 1. 홈 (`#/`)
+#### 1. 홈 (`/`)
 
 **Purpose**: 첫 진입 화면. 대회 브랜딩 인상 + D-day 카운트다운 + 소개 링크
 
@@ -67,13 +67,13 @@
 - Dot 클릭으로 즉시 이동 + 타이머 재시작
 
 **Interactions**:
-- CTA `참가 신청하기` → `#/apply`
-- 헤더 로고 클릭 → `#/`
+- CTA `참가 신청하기` → `/apply`
+- 헤더 로고 클릭 → `/`
 - Dot 클릭 → 해당 슬라이드로 이동
 
 ---
 
-#### 2. 소개 (`#/about`)
+#### 2. 소개 (`/about`)
 
 **Purpose**: River Run 브랜드 소개 및 K-water 관리시설별 러닝 코스 안내
 
@@ -106,7 +106,7 @@
 
 ---
 
-#### 3. 대회 안내 (`#/event`)
+#### 3. 대회 안내 (`/event`)
 
 **Purpose**: 2026 대회 상세 정보 (개요·코스·기념품·주차)
 
@@ -142,7 +142,7 @@
 
 ---
 
-#### 4. 참가 신청 (`#/apply`) — 4단계 폼
+#### 4. 참가 신청 (`/apply`) — 4단계 폼
 
 **Purpose**: 참가자가 실제로 신청하는 다단계 폼
 
@@ -217,7 +217,7 @@
 
 ---
 
-#### 5. 접수 확인 (`#/lookup`)
+#### 5. 접수 확인 (`/lookup`)
 
 **Purpose**: 이미 신청한 사용자가 내역을 조회하고 본인 정보를 직접 수정
 
@@ -237,7 +237,7 @@
 
 ---
 
-#### 6. 공지사항 (`#/notice`)
+#### 6. 공지사항 (`/notice`)
 
 **Purpose**: 대회 관련 공지 목록
 
@@ -257,7 +257,7 @@
 
 ---
 
-#### 7. 갤러리 (`#/gallery`)
+#### 7. 갤러리 (`/gallery`)
 
 **Purpose**: 대회 사진 그리드. 관리자가 업로드한 이미지가 그대로 표시됨 (Supabase `gallery` 테이블/버킷, 현재 비어있는 상태 — 로컬 `assets/img/gallery-*.jpg`는 화면에 안 쓰이는 초기 샘플 파일)
 
@@ -273,7 +273,7 @@
 
 **공통 스타일** — `.policy` 컨테이너
 
-##### 개인정보처리방침 (`#/privacy`) · 8개 조항
+##### 개인정보처리방침 (`/privacy`) · 8개 조항
 1. 개인정보의 수집 항목 및 방법
 2. 개인정보의 수집·이용 목적
 3. 개인정보의 보유 및 이용기간
@@ -283,10 +283,10 @@
 7. 개인정보의 안전성 확보 조치
 8. 개인정보 보호책임자
 
-##### 이용약관 (`#/terms`) · 8개 조항
+##### 이용약관 (`/terms`) · 8개 조항
 1. 목적 / 2. 용어 정의 / 3. 약관 효력·변경 / 4. 서비스 제공 / 5. 참가자의 의무 / 6. 회사의 의무 / 7. 책임의 제한 / 8. 분쟁 해결
 
-##### 환불정책 (`#/refund`) · 5개 조항
+##### 환불정책 (`/refund`) · 5개 조항
 - 시점별 환불 기준표 (접수 마감일 이전 100% / 이후~30일전 50% / 30일 이내 불가)
 - 환불 불가 사유 / 전액 환불 사유 / 신청 방법 / 문의처
 
@@ -303,7 +303,7 @@
 - 사이드바 활성 항목: 좌측 3px kw-blue 세로 바 + bg: kw-lblue-soft
 - 모바일에서 사이드바 → 상단 가로 스크롤 탭바로 전환
 
-#### Admin 1 · 대시보드 (`#/admin/dashboard`)
+#### Admin 1 · 대시보드 (`/admin/dashboard`)
 
 - **stat-grid 4열 카드**:
   - 총 신청 건수 (개인 N · 가족 N · 단체 N 부제)
@@ -314,7 +314,7 @@
 - **최근 신청 5건**: admin-table
 - 이 페이지 진입 시에만 `applicants` 전체를 Supabase에서 로드함 (다른 공개 페이지에서는 불러오지 않음)
 
-#### Admin 2 · 참가자 관리 (`#/admin/applicants`)
+#### Admin 2 · 참가자 관리 (`/admin/applicants`)
 
 - **툴바**: 검색(이름·연락처·접수번호) + 유형 필터(전체/개인/가족/단체) + 페이스 필터
 - **[CSV 다운로드]** 우측 상단 버튼 (UTF-8 BOM CSV, 입금상태 컬럼 포함)
@@ -331,19 +331,19 @@
 
 **입금상태 배지**: 대기(`gray`) · 확인(`green`) · 취소(`red`)
 
-#### Admin 3 · 페이스 그룹 (`#/admin/pace`)
+#### Admin 3 · 페이스 그룹 (`/admin/pace`)
 
 - 3 pace-row: {이름·설명} | progress bar | {신청 인원} | {전체 대비 %}
 - 정원 입력·저장 기능 없음 — 순수 조회용 통계 페이지. 화면에 "선착순 마감 기준은 행사 정보의 모집 정원(전체)"라고 명시
 
-#### Admin 4 · 공지사항 (`#/admin/notice`)
+#### Admin 4 · 공지사항 (`/admin/notice`)
 
 - admin-table: 구분 배지 · 제목 · 등록일 · [수정][삭제]
 - 상단 [+ 새 공지 작성] 버튼
 - 작성/수정 모달: 구분(select: 중요/안내/이벤트) · 등록일(date) · 상단 고정(checkbox) · 제목 · 내용(textarea 10 rows) · **첨부 이미지**(업로드 시 미리보기 + 제거 가능)
 - 이미지 교체·제거·공지 삭제 시 Storage의 이전 파일도 함께 정리됨 (고아 파일 안 남음)
 
-#### Admin 5 · 갤러리 (`#/admin/gallery`)
+#### Admin 5 · 갤러리 (`/admin/gallery`)
 
 - 4열 그리드 (모바일 2열)
 - 좌상단 업로드 버튼 (dashed border + 플러스 아이콘, `<input type="file" multiple>`)
@@ -351,7 +351,7 @@
 - 업로드 시 클라이언트에서 자동으로 리사이즈·압축(최대 1600px, JPEG) 후 Supabase Storage(`gallery` 버킷)에 저장, DB에는 공개 URL만 저장
 - 삭제 시 DB 행과 Storage 파일이 함께 삭제됨
 
-#### Admin 6 · 행사 정보 (`#/admin/event`)
+#### Admin 6 · 행사 정보 (`/admin/event`)
 
 - 기본 정보 블록: 대회명 · 대회 일시(datetime-local) · 종목·거리 · 행사 장소 · 참가비(number) · 주최 · 주관 · **모집 정원(전체)**
 - 접수 기간 블록: 접수 시작 · 접수 마감 (datetime-local)
@@ -365,8 +365,9 @@
 
 ### Global
 
-- **Routing**: hash-based SPA routing (`#/`, `#/about`, `#/event`, `#/apply`, `#/lookup`, `#/notice`, `#/gallery`, `#/privacy`, `#/terms`, `#/refund`, `#/admin`, `#/admin/dashboard` 등)
-- **로그인 게이트**: `#/admin/*` 접속 시 `sessionStorage['rr_admin_session'] === '1'` 체크. 실패 시 로그인 화면
+- **Routing**: History API(pushState) 기반 SPA 라우팅 (`/`, `/about`, `/event`, `/apply`, `/lookup`, `/notice`, `/gallery`, `/privacy`, `/terms`, `/refund`, `/admin`, `/admin/dashboard` 등). 호스팅 측에 모든 경로를 `index.html`로 보내는 리라이트가 필요 (`vercel.json`)
+  - **로컬 테스트 시 주의**: `python -m http.server` 같은 일반 정적 서버는 이 리라이트가 없어서 `/about`처럼 루트가 아닌 경로를 새로고침하면 404가 뜬다. 로컬에서 확인하려면 SPA 폴백을 지원하는 서버를 쓸 것 — 예: `npx serve -s .` (Node 필요). Vercel에 배포하면 `vercel.json`이 자동 적용되어 정상 동작한다.
+- **로그인 게이트**: `/admin/*` 접속 시 `sessionStorage['rr_admin_session'] === '1'` 체크. 실패 시 로그인 화면
 - **모바일 햄버거 메뉴**: 960px 이하에서 표시, 클릭 시 풀스크린 오버레이
 
 ### 히어로 슬라이드쇼
@@ -436,7 +437,7 @@ RR_STORE.state = {
 
 로딩 시점:
 - `event` / `paceGroups` / `notices` / `gallery` → 모든 페이지 최초 로딩 시 함께 불러옴
-- `applicants` → `#/admin/dashboard`, `#/admin/applicants` 진입 시에만 전체 로드. 공개 페이지(참가신청·접수확인)는 RPC(`total_applied_count`, `lookup_applicant`)로 필요한 값만 서버에서 계산해 받음 — 전체 신청자 개인정보가 불필요하게 브라우저에 실리지 않도록 하기 위함
+- `applicants` → `/admin/dashboard`, `/admin/applicants` 진입 시에만 전체 로드. 공개 페이지(참가신청·접수확인)는 RPC(`total_applied_count`, `lookup_applicant`)로 필요한 값만 서버에서 계산해 받음 — 전체 신청자 개인정보가 불필요하게 브라우저에 실리지 않도록 하기 위함
 
 **Apply State** — `RR_APP.applyState` (메모리, 페이지 이탈 시 리셋)
 ```
@@ -446,7 +447,7 @@ RR_STORE.state = {
   agrees: { a1, a2, a3, a4 },
   members: [ {}, ... ],   // 가족·단체
   selectedPace, selectedSize, selectedGender,
-  totalApplied: number|null,  // #/apply 진입 시 비동기로 채워지는 정원 판단용 캐시
+  totalApplied: number|null,  // /apply 진입 시 비동기로 채워지는 정원 판단용 캐시
   result: /* 완료된 record */
 }
 ```
