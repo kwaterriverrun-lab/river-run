@@ -58,7 +58,7 @@
       step: 1, type: null,
       agrees: {}, members: [{}],
       selectedPace: null, selectedSize: null, selectedGender: null,
-      result: null
+      result: null, totalApplied: null
     };
   }
 
@@ -72,7 +72,7 @@
     }
   }
 
-  function render() {
+  async function render() {
     const hash = location.hash || '#/';
     localStorage.setItem('rr_route', hash);
     const isAdmin = hash.startsWith('#/admin');
@@ -83,7 +83,7 @@
     document.getElementById('adminHeader').style.display = isAdmin ? '' : 'none';
 
     if (isAdmin) {
-      renderAdmin(hash);
+      await renderAdmin(hash);
     } else {
       renderPublic(hash);
     }
@@ -115,7 +115,7 @@
     if (twDesc && description) twDesc.setAttribute('content', description);
   }
 
-  function renderAdmin(hash) {
+  async function renderAdmin(hash) {
     updateMeta(`관리자 — ${SITE_NAME}`, null);
     // Auth gate
     if (!APP.admin.session) {
@@ -123,13 +123,15 @@
       bindAdminLogin();
       return;
     }
+    const tabKey = hash.replace('#/admin/', '').replace('#/admin', 'dashboard') || 'dashboard';
+    if (tabKey === 'dashboard' || tabKey === 'applicants' || tabKey === '') {
+      await RR_STORE.loadApplicantsFromSupabase();
+    }
     const renderFn = ADMIN_ROUTES[hash] || ADMIN_ROUTES['#/admin/dashboard'];
     document.getElementById('view').innerHTML = renderFn();
     bindAdminCommon();
-    const tabKey = hash.replace('#/admin/', '').replace('#/admin', 'dashboard') || 'dashboard';
     if (tabKey === 'dashboard' || tabKey === '') bindAdminDashboard();
     else if (tabKey === 'applicants') bindAdminApplicants();
-    else if (tabKey === 'pace') bindAdminPace();
     else if (tabKey === 'notice') bindAdminNotice();
     else if (tabKey === 'gallery') bindAdminGallery();
     else if (tabKey === 'event') bindAdminEvent();
@@ -149,6 +151,17 @@
   function closeMobileMenu() {
     document.getElementById('mobileMenu').classList.remove('open');
     document.getElementById('hamburger').classList.remove('open');
+  }
+
+  // ================================
+  // 입력 자동 포맷 (생년월일 · 연락처에 '-' 자동 삽입 — 포맷 로직은 RR_FMT.phoneInput/birthInput)
+  // ================================
+  function bindAutoFormat(input, formatter) {
+    if (!input) return;
+    input.addEventListener('input', () => {
+      const formatted = formatter(input.value);
+      if (formatted !== input.value) input.value = formatted;
+    });
   }
 
   // ================================
@@ -285,6 +298,8 @@
     });
 
     // ---- Step 3: 정보 입력 ----
+    bindAutoFormat(document.querySelector('[data-f="birth"]'), RR_FMT.birthInput);
+    bindAutoFormat(document.querySelector('[data-f="phone"]'), RR_FMT.phoneInput);
     document.querySelectorAll('[data-group]').forEach(group => {
       group.querySelectorAll('.size-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -317,8 +332,8 @@
         <tr class="${i === 0 ? 'is-leader' : ''}">
           <td style="text-align:center;color:${i === 0 ? 'var(--kw-blue)' : 'var(--text-3)'};font-weight:${i === 0 ? '700' : '400'};">${i === 0 ? '대표' : (i+1)}</td>
           <td><input type="text" data-mf="name" data-mi="${i}" value="${m.name||''}" placeholder="이름"></td>
-          <td><input type="text" data-mf="birth" data-mi="${i}" value="${m.birth||''}" placeholder="YYYY-MM-DD"></td>
-          <td><input type="tel" data-mf="phone" data-mi="${i}" value="${m.phone||''}" placeholder="010-"></td>
+          <td><input type="text" data-mf="birth" data-mi="${i}" value="${RR_FMT.birthInput(m.birth||'')}" placeholder="YYYY-MM-DD"></td>
+          <td><input type="tel" data-mf="phone" data-mi="${i}" value="${RR_FMT.phoneInput(m.phone||'')}" placeholder="010-"></td>
           <td>
             <select data-mf="gender" data-mi="${i}">
               <option value="">-</option>
@@ -347,10 +362,10 @@
           </div>
           <div class="field-row">
             <div class="field"><label>성명 *</label><input type="text" data-mf="name" data-mi="${i}" value="${m.name||''}"></div>
-            <div class="field"><label>생년월일 *</label><input type="text" data-mf="birth" data-mi="${i}" value="${m.birth||''}" placeholder="YYYY-MM-DD"></div>
+            <div class="field"><label>생년월일 *</label><input type="text" data-mf="birth" data-mi="${i}" value="${RR_FMT.birthInput(m.birth||'')}" placeholder="YYYY-MM-DD"></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>연락처 *</label><input type="tel" data-mf="phone" data-mi="${i}" value="${m.phone||''}" placeholder="010-"></div>
+            <div class="field"><label>연락처 *</label><input type="tel" data-mf="phone" data-mi="${i}" value="${RR_FMT.phoneInput(m.phone||'')}" placeholder="010-"></div>
             <div class="field"><label>성별 *</label>
               <select data-mf="gender" data-mi="${i}">
                 <option value="">-</option>
@@ -377,6 +392,8 @@
       `).join('');
       document.querySelectorAll('[data-mf]').forEach(inp => {
         inp.addEventListener('input', () => {
+          if (inp.dataset.mf === 'birth') inp.value = RR_FMT.birthInput(inp.value);
+          if (inp.dataset.mf === 'phone') inp.value = RR_FMT.phoneInput(inp.value);
           st.members[+inp.dataset.mi][inp.dataset.mf] = inp.value;
         });
         inp.addEventListener('change', () => {
@@ -394,7 +411,7 @@
     if (prev3) prev3.addEventListener('click', () => { st.step = 2; refreshApplyPanel(); });
 
     const submit = document.getElementById('applySubmit');
-    if (submit) submit.addEventListener('click', () => {
+    if (submit) submit.addEventListener('click', async () => {
       const data = {};
       let ok = true;
       document.querySelectorAll('[data-f]').forEach(inp => {
@@ -428,13 +445,7 @@
       }
       if (!ok) return;
 
-      const record = {
-        id: 'RR-' + String(Date.now()).slice(-6),
-        type: st.type,
-        pace: st.selectedPace,
-        createdAt: new Date().toISOString().slice(0,19),
-        ...data
-      };
+      const record = { type: st.type, pace: st.selectedPace, ...data };
       if (st.type === 'individual') {
         record.gender = st.selectedGender;
         record.size = st.selectedSize;
@@ -446,13 +457,17 @@
         record.members    = st.members.slice();
       }
 
-      RR_STORE.state.applicants.push(record);
-      RR_STORE.syncPaceApplied();
-      RR_STORE.save();
-
-      st.result = record;
-      st.step = 4;
-      refreshApplyPanel();
+      submit.disabled = true;
+      try {
+        const saved = await RR_STORE.createApplicantInSupabase(record);
+        st.result = saved;
+        st.step = 4;
+        refreshApplyPanel();
+      } catch (e) {
+        console.error(e);
+        toast('신청에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        submit.disabled = false;
+      }
     });
   }
 
@@ -466,7 +481,8 @@
   function bindLookupSearchForm() {
     const btn = document.getElementById('lookupBtn');
     if (!btn) return;
-    btn.addEventListener('click', () => {
+    bindAutoFormat(document.getElementById('lookupPhone'), RR_FMT.phoneInput);
+    btn.addEventListener('click', async () => {
       const name = document.getElementById('lookupName').value.trim();
       const phone = document.getElementById('lookupPhone').value.trim();
       const pw = document.getElementById('lookupPw').value;
@@ -475,19 +491,21 @@
         res.innerHTML = `<div class="lookup-noresult">이름, 연락처, 비밀번호를 모두 입력해 주세요.</div>`;
         return;
       }
-      const digits = phone.replace(/\D/g, '');
-      const record = RR_STORE.state.applicants.find(a => {
-        const p = (a.phone || '').replace(/\D/g, '');
-        if (p !== digits || a.password !== pw) return false;
-        return (a.type === 'individual' && a.name === name) ||
-               ((a.type === 'group' || a.type === 'family') && (a.leaderName === name || a.teamName === name));
-      });
-      if (!record) {
-        res.innerHTML = `<div class="lookup-noresult">일치하는 신청 내역이 없습니다. 입력 정보를 다시 확인해 주세요.</div>`;
-        return;
+      btn.disabled = true;
+      try {
+        const record = await RR_STORE.lookupApplicant(name, phone, pw);
+        if (!record) {
+          res.innerHTML = `<div class="lookup-noresult">일치하는 신청 내역이 없습니다. 입력 정보를 다시 확인해 주세요.</div>`;
+          return;
+        }
+        res.innerHTML = RR_HELPERS.renderLookupConfirm(record);
+        bindLookupConfirmActions(record);
+      } catch (e) {
+        console.error(e);
+        res.innerHTML = `<div class="lookup-noresult">조회에 실패했습니다. 잠시 후 다시 시도해 주세요.</div>`;
+      } finally {
+        btn.disabled = false;
       }
-      res.innerHTML = RR_HELPERS.renderLookupConfirm(record);
-      bindLookupConfirmActions(record);
     });
   }
 
@@ -514,6 +532,9 @@
       members: record.members ? JSON.parse(JSON.stringify(record.members)) : []
     };
 
+    bindAutoFormat(document.querySelector('[data-ef="birth"]'), RR_FMT.birthInput);
+    bindAutoFormat(document.querySelector('[data-ef="phone"]'), RR_FMT.phoneInput);
+
     document.querySelectorAll('[data-egroup]').forEach(group => {
       group.querySelectorAll('.size-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -539,8 +560,8 @@
         <tr class="${i === 0 ? 'is-leader' : ''}">
           <td style="text-align:center;color:${i === 0 ? 'var(--kw-blue)' : 'var(--text-3)'};font-weight:${i === 0 ? '700' : '400'};">${i === 0 ? '대표' : (i+1)}</td>
           <td><input type="text" data-emf="name" data-emi="${i}" value="${m.name||''}" placeholder="이름"></td>
-          <td><input type="text" data-emf="birth" data-emi="${i}" value="${m.birth||''}" placeholder="YYYY-MM-DD"></td>
-          <td><input type="tel" data-emf="phone" data-emi="${i}" value="${m.phone||''}" placeholder="010-"></td>
+          <td><input type="text" data-emf="birth" data-emi="${i}" value="${RR_FMT.birthInput(m.birth||'')}" placeholder="YYYY-MM-DD"></td>
+          <td><input type="tel" data-emf="phone" data-emi="${i}" value="${RR_FMT.phoneInput(m.phone||'')}" placeholder="010-"></td>
           <td>
             <select data-emf="gender" data-emi="${i}">
               <option value="">-</option>
@@ -569,10 +590,10 @@
           </div>
           <div class="field-row">
             <div class="field"><label>성명 *</label><input type="text" data-emf="name" data-emi="${i}" value="${m.name||''}"></div>
-            <div class="field"><label>생년월일 *</label><input type="text" data-emf="birth" data-emi="${i}" value="${m.birth||''}" placeholder="YYYY-MM-DD"></div>
+            <div class="field"><label>생년월일 *</label><input type="text" data-emf="birth" data-emi="${i}" value="${RR_FMT.birthInput(m.birth||'')}" placeholder="YYYY-MM-DD"></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>연락처 *</label><input type="tel" data-emf="phone" data-emi="${i}" value="${m.phone||''}" placeholder="010-"></div>
+            <div class="field"><label>연락처 *</label><input type="tel" data-emf="phone" data-emi="${i}" value="${RR_FMT.phoneInput(m.phone||'')}" placeholder="010-"></div>
             <div class="field"><label>성별 *</label>
               <select data-emf="gender" data-emi="${i}">
                 <option value="">-</option>
@@ -598,7 +619,11 @@
         </div>
       `).join('');
       document.querySelectorAll('[data-emf]').forEach(inp => {
-        inp.addEventListener('input', () => { editState.members[+inp.dataset.emi][inp.dataset.emf] = inp.value; });
+        inp.addEventListener('input', () => {
+          if (inp.dataset.emf === 'birth') inp.value = RR_FMT.birthInput(inp.value);
+          if (inp.dataset.emf === 'phone') inp.value = RR_FMT.phoneInput(inp.value);
+          editState.members[+inp.dataset.emi][inp.dataset.emf] = inp.value;
+        });
         inp.addEventListener('change', () => { editState.members[+inp.dataset.emi][inp.dataset.emf] = inp.value; });
       });
       document.querySelectorAll('[data-edel]').forEach(b => {
@@ -610,7 +635,7 @@
     if (cancelBtn) cancelBtn.addEventListener('click', () => restoreLookupView(record));
 
     const saveBtn = document.getElementById('lookupEditSave');
-    if (saveBtn) saveBtn.addEventListener('click', () => {
+    if (saveBtn) saveBtn.addEventListener('click', async () => {
       const data = {};
       let ok = true;
       document.querySelectorAll('[data-ef]').forEach(inp => {
@@ -644,34 +669,36 @@
       if (data.password && data.password.length < 4) { mark('password'); ok = false; }
       if (!ok) return;
 
-      const stored = RR_STORE.state.applicants.find(a => a.id === record.id);
-      if (!stored) { toast('신청 내역을 찾을 수 없습니다.'); return; }
+      const patch = { pace: selectedPace };
+      if (data.password) patch.password = data.password;
 
-      stored.pace = selectedPace;
-      if (data.password) stored.password = data.password;
-
-      if (stored.type === 'individual') {
-        stored.name = data.name;
-        stored.birth = data.birth;
-        stored.phone = data.phone;
-        stored.email = data.email;
-        stored.address = data.address;
-        stored.gender = editState.selectedGender;
-        stored.size = editState.selectedSize;
+      if (record.type === 'individual') {
+        patch.name = data.name;
+        patch.birth = data.birth;
+        patch.phone = data.phone;
+        patch.email = data.email;
+        patch.address = data.address;
+        patch.gender = editState.selectedGender;
+        patch.size = editState.selectedSize;
       } else {
-        stored.teamName = data.teamName;
-        stored.email = data.email;
-        stored.members = editState.members.slice();
+        patch.teamName = data.teamName;
+        patch.email = data.email;
+        patch.members = editState.members.slice();
         const leader = editState.members[0] || {};
-        stored.leaderName = leader.name || '';
-        stored.phone = leader.phone || '';
+        patch.leaderName = leader.name || '';
+        patch.phone = leader.phone || '';
       }
 
-      RR_STORE.syncPaceApplied();
-      RR_STORE.save();
-
-      toast('참가 정보가 수정되었습니다.');
-      restoreLookupView(stored);
+      saveBtn.disabled = true;
+      try {
+        const updated = await RR_STORE.updateOwnApplicant(record.id, record.password, patch);
+        toast('참가 정보가 수정되었습니다.');
+        restoreLookupView(updated);
+      } catch (e) {
+        console.error(e);
+        toast('수정에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        saveBtn.disabled = false;
+      }
     });
   }
 
@@ -697,6 +724,7 @@
         </div>
         <div class="modal-body">
           <div style="font-size:12px;color:var(--text-3);margin-bottom:16px;">${RR_FMT.date(n.date)}</div>
+          ${n.imageUrl ? `<img src="${n.imageUrl}" alt="" style="width:100%;border-radius:var(--r-md);margin-bottom:16px;">` : ''}
           ${bodyHtml}
         </div>
       </div>
@@ -719,7 +747,15 @@
       bindHeroSlideshow();
     }
 
-    if (hash === '#/apply') bindApplyHandlers();
+    if (hash === '#/apply') {
+      bindApplyHandlers();
+      if (APP.applyState.totalApplied == null) {
+        RR_STORE.getTotalApplied().then(n => {
+          APP.applyState.totalApplied = n;
+          if (APP.applyState.step === 1) refreshApplyPanel();
+        });
+      }
+    }
     if (hash === '#/lookup') bindLookup();
     if (hash === '#/notice') bindNoticeList();
     bindImageZoom();
@@ -752,8 +788,6 @@
         start();
       });
     });
-    root.addEventListener('mouseenter', () => clearInterval(heroTimer));
-    root.addEventListener('mouseleave', start);
     start();
   }
 
@@ -802,7 +836,7 @@
     const doLogin = () => {
       const id = document.getElementById('admLoginId').value.trim();
       const pw = document.getElementById('admLoginPw').value;
-      if (id === 'admin' && pw === 'admin') {
+      if (id === 'admin' && pw === 'admin2026') {
         APP.admin.session = true;
         sessionStorage.setItem('rr_admin_session', '1');
         location.hash = '#/admin/dashboard';
@@ -850,8 +884,10 @@
         if (state.pace && a.pace !== state.pace) return false;
         if (!q) return true;
         const name = a.type === 'individual' ? a.name : (a.teamName + ' ' + a.leaderName);
+        const qDigits = q.replace(/\D/g, '');
+        const phoneMatch = qDigits.length > 0 && (a.phone || '').replace(/\D/g, '').includes(qDigits);
         return (name || '').toLowerCase().includes(q)
-            || (a.phone || '').includes(q)
+            || phoneMatch
             || (a.id || '').toLowerCase().includes(q);
       });
       if (!list.length) {
@@ -869,11 +905,13 @@
             <td><span style="font-family:monospace;font-size:12.5px;">${a.id}</span></td>
             <td>${window.typeBadge(a.type)}</td>
             <td>${name}</td>
-            <td>${a.phone || '-'}</td>
+            <td>${a.phone ? RR_FMT.phoneInput(a.phone) : '-'}</td>
             <td>${pace}</td>
             <td>${count}명</td>
-            <td style="color:var(--text-3);">${RR_FMT.dateTime(a.createdAt)}</td>
+            <td>${window.paymentBadge(a.paymentStatus)}</td>
+            <td style="color:var(--text-3);">${RR_FMT.dateTimeUTC(a.createdAt)}</td>
             <td class="actions">
+              ${a.paymentStatus !== 'paid' ? `<button class="btn btn-outline btn-sm" data-app-pay="${a.id}">입금확인</button>` : ''}
               <button class="btn btn-ghost btn-sm" data-app-view="${a.id}">상세</button>
               <button class="btn btn-ghost btn-sm" data-app-edit="${a.id}">수정</button>
               <button class="btn btn-ghost btn-sm" data-app-del="${a.id}">삭제</button>
@@ -892,13 +930,29 @@
         b.addEventListener('click', () => editApplicant(b.dataset.appEdit));
       });
       tbody.querySelectorAll('[data-app-del]').forEach(b => {
-        b.addEventListener('click', () => {
+        b.addEventListener('click', async () => {
           if (!confirm('해당 신청을 삭제하시겠습니까?')) return;
-          RR_STORE.state.applicants = RR_STORE.state.applicants.filter(a => a.id !== b.dataset.appDel);
-          RR_STORE.syncPaceApplied();
-          RR_STORE.save();
-          toast('삭제되었습니다.');
-          draw();
+          try {
+            await RR_STORE.deleteApplicantInSupabase(b.dataset.appDel);
+            toast('삭제되었습니다.');
+            draw();
+          } catch (e) {
+            console.error(e);
+            toast('삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+          }
+        });
+      });
+      tbody.querySelectorAll('[data-app-pay]').forEach(b => {
+        b.addEventListener('click', async () => {
+          if (!confirm('입금 확인 처리하시겠습니까?')) return;
+          try {
+            await RR_STORE.updateApplicantInSupabase(b.dataset.appPay, { paymentStatus: 'paid' });
+            toast('입금 확인 처리되었습니다.');
+            draw();
+          } catch (e) {
+            console.error(e);
+            toast('처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+          }
         });
       });
     }
@@ -914,7 +968,7 @@
           <div style="font-weight:600;margin-bottom:8px;">참가자 명단 (${a.members.length}명)</div>
           <table class="admin-table">
             <thead><tr><th>#</th><th>성명</th><th>생년월일</th><th>연락처</th><th>성별</th><th>사이즈</th><th>주소</th></tr></thead>
-            <tbody>${a.members.map((m,i)=>`<tr><td>${i+1}</td><td>${m.name||''}</td><td>${m.birth||''}</td><td>${m.phone||''}</td><td>${m.gender==='male'?'남':m.gender==='female'?'여':''}</td><td>${m.size||''}</td><td>${m.address||''}</td></tr>`).join('')}</tbody>
+            <tbody>${a.members.map((m,i)=>`<tr><td>${i+1}</td><td>${m.name||''}</td><td>${m.birth?RR_FMT.birthInput(m.birth):''}</td><td>${m.phone?RR_FMT.phoneInput(m.phone):''}</td><td>${m.gender==='male'?'남':m.gender==='female'?'여':''}</td><td>${m.size||''}</td><td>${m.address||''}</td></tr>`).join('')}</tbody>
           </table>
         </div>
       ` : '';
@@ -925,16 +979,17 @@
             <div class="dl">
               <div class="dl-row"><div class="dl-term">유형</div><div class="dl-desc">${window.RR_HELPERS.typeLabel(a.type)}</div></div>
               <div class="dl-row"><div class="dl-term">신청자</div><div class="dl-desc">${name}</div></div>
-              <div class="dl-row"><div class="dl-term">연락처</div><div class="dl-desc">${a.phone||''}</div></div>
+              <div class="dl-row"><div class="dl-term">연락처</div><div class="dl-desc">${a.phone ? RR_FMT.phoneInput(a.phone) : ''}</div></div>
               <div class="dl-row"><div class="dl-term">이메일</div><div class="dl-desc">${a.email||'-'}</div></div>
               <div class="dl-row"><div class="dl-term">주소</div><div class="dl-desc">${a.address||''}</div></div>
               <div class="dl-row"><div class="dl-term">페이스</div><div class="dl-desc">${RR_FMT.pace(a.pace)}</div></div>
+              <div class="dl-row"><div class="dl-term">입금상태</div><div class="dl-desc">${window.paymentBadge(a.paymentStatus)}</div></div>
               ${a.type==='individual'?`
-              <div class="dl-row"><div class="dl-term">생년월일</div><div class="dl-desc">${a.birth||''}</div></div>
+              <div class="dl-row"><div class="dl-term">생년월일</div><div class="dl-desc">${a.birth ? RR_FMT.birthInput(a.birth) : ''}</div></div>
               <div class="dl-row"><div class="dl-term">성별</div><div class="dl-desc">${a.gender==='male'?'남':a.gender==='female'?'여':''}</div></div>
               <div class="dl-row"><div class="dl-term">사이즈</div><div class="dl-desc">${a.size||''}</div></div>
               `:''}
-              <div class="dl-row"><div class="dl-term">신청일시</div><div class="dl-desc">${RR_FMT.dateTime(a.createdAt)}</div></div>
+              <div class="dl-row"><div class="dl-term">신청일시</div><div class="dl-desc">${RR_FMT.dateTimeUTC(a.createdAt)}</div></div>
             </div>
             ${memberHtml}
           </div>
@@ -962,7 +1017,7 @@
           <div class="modal-body">
             ${nameField}
             <div class="field-row">
-              <div class="field"><label>연락처</label><input id="edt_phone" type="tel" value="${a.phone||''}"></div>
+              <div class="field"><label>연락처</label><input id="edt_phone" type="tel" value="${RR_FMT.phoneInput(a.phone||'')}"></div>
               <div class="field"><label>이메일</label><input id="edt_email" type="email" value="${a.email||''}"></div>
             </div>
             <div class="field"><label>주소</label><input id="edt_address" type="text" value="${a.address||''}"></div>
@@ -982,24 +1037,31 @@
       `;
       document.body.appendChild(modal);
       modal.querySelectorAll('.modal-close').forEach(x => x.addEventListener('click', () => modal.remove()));
-      modal.querySelector('#edt_save').addEventListener('click', () => {
+      bindAutoFormat(modal.querySelector('#edt_phone'), RR_FMT.phoneInput);
+      modal.querySelector('#edt_save').addEventListener('click', async () => {
+        const patch = {
+          phone: modal.querySelector('#edt_phone').value,
+          email: modal.querySelector('#edt_email').value,
+          address: modal.querySelector('#edt_address').value,
+          pace: modal.querySelector('#edt_pace').value
+        };
         if (a.type === 'individual') {
-          a.name = modal.querySelector('#edt_name').value;
-          a.gender = modal.querySelector('#edt_gender').value;
-          a.size = modal.querySelector('#edt_size').value;
+          patch.name = modal.querySelector('#edt_name').value;
+          patch.gender = modal.querySelector('#edt_gender').value;
+          patch.size = modal.querySelector('#edt_size').value;
         } else {
-          a.teamName = modal.querySelector('#edt_teamName').value;
-          a.leaderName = modal.querySelector('#edt_leaderName').value;
+          patch.teamName = modal.querySelector('#edt_teamName').value;
+          patch.leaderName = modal.querySelector('#edt_leaderName').value;
         }
-        a.phone = modal.querySelector('#edt_phone').value;
-        a.email = modal.querySelector('#edt_email').value;
-        a.address = modal.querySelector('#edt_address').value;
-        a.pace = modal.querySelector('#edt_pace').value;
-        RR_STORE.syncPaceApplied();
-        RR_STORE.save();
-        modal.remove();
-        toast('수정되었습니다.');
-        draw();
+        try {
+          await RR_STORE.updateApplicantInSupabase(a.id, patch);
+          modal.remove();
+          toast('수정되었습니다.');
+          draw();
+        } catch (e) {
+          console.error(e);
+          toast('수정에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        }
       });
     }
 
@@ -1013,23 +1075,50 @@
     document.getElementById('admExportCsv').addEventListener('click', () => exportCsv());
 
     function exportCsv() {
-      const rows = [['접수번호','유형','신청자','대표자명','연락처','이메일','주소','페이스','성별','사이즈','인원','신청일시']];
+      const payLabel = { pending: '입금대기', paid: '입금확인', cancelled: '취소' };
+      const genderLabel = (g) => g === 'male' ? '남' : g === 'female' ? '여' : '';
+      const rows = [['접수번호','유형','신청자/단체명','대표자명','구성원 순번','성명','생년월일','연락처','이메일','주소','성별','사이즈','페이스','입금상태','신청일시']];
       RR_STORE.state.applicants.forEach(a => {
         const isI = a.type === 'individual';
-        rows.push([
+        const common = [
           a.id,
           window.RR_HELPERS.typeLabel(a.type),
           isI ? a.name : a.teamName,
-          isI ? '' : a.leaderName,
-          a.phone || '',
-          a.email || '',
-          a.address || '',
-          RR_FMT.pace(a.pace),
-          isI ? (a.gender==='male'?'남':a.gender==='female'?'여':'') : '',
-          isI ? (a.size||'') : '',
-          isI ? 1 : (a.members||[]).length,
-          RR_FMT.dateTime(a.createdAt)
-        ]);
+          isI ? '' : a.leaderName
+        ];
+        if (isI) {
+          rows.push([
+            ...common,
+            '',
+            a.name,
+            a.birth ? RR_FMT.birthInput(a.birth) : '',
+            a.phone ? RR_FMT.phoneInput(a.phone) : '',
+            a.email || '',
+            a.address || '',
+            genderLabel(a.gender),
+            a.size || '',
+            RR_FMT.pace(a.pace),
+            payLabel[a.paymentStatus] || '입금대기',
+            RR_FMT.dateTimeUTC(a.createdAt)
+          ]);
+        } else {
+          (a.members || []).forEach((m, i) => {
+            rows.push([
+              ...common,
+              i + 1,
+              m.name || '',
+              m.birth ? RR_FMT.birthInput(m.birth) : '',
+              m.phone ? RR_FMT.phoneInput(m.phone) : '',
+              a.email || '',
+              m.address || '',
+              genderLabel(m.gender),
+              m.size || '',
+              RR_FMT.pace(a.pace),
+              payLabel[a.paymentStatus] || '입금대기',
+              RR_FMT.dateTimeUTC(a.createdAt)
+            ]);
+          });
+        }
       });
       const csv = '\uFEFF' + rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1044,26 +1133,28 @@
     draw();
   }
 
-  // ---- Pace ----
-  function bindAdminPace() {
-    document.getElementById('admSavePace').addEventListener('click', () => {
-      let ok = true;
-      document.querySelectorAll('[data-pace-cap]').forEach(inp => {
-        const id = inp.dataset.paceCap;
-        const p = RR_STORE.state.paceGroups.find(x => x.id === id);
-        const v = parseInt(inp.value, 10);
-        if (isNaN(v) || v < 0) { ok = false; toast('정원은 0 이상의 숫자여야 합니다.'); return; }
-        if (v < p.applied) { ok = false; toast(`${p.label} 정원은 현재 신청 인원(${p.applied}명)보다 작을 수 없습니다.`); return; }
-        p.capacity = v;
-      });
-      if (ok) { RR_STORE.save(); toast('페이스 정원이 저장되었습니다.'); render(); }
-    });
-  }
-
   // ---- Notice ----
   function bindAdminNotice() {
     const modal = document.getElementById('admNoticeModal');
+    const imgFileInput = document.getElementById('admNoticeImageFile');
+    const imgUrlField = document.getElementById('admNoticeImageUrl');
+    const imgPreviewWrap = document.getElementById('admNoticeImagePreviewWrap');
+    const imgPreview = document.getElementById('admNoticeImagePreview');
+    let pendingImageFile = null;
+
+    function showPreview(src) {
+      if (src) {
+        imgPreview.src = src;
+        imgPreviewWrap.classList.remove('hidden');
+      } else {
+        imgPreview.src = '';
+        imgPreviewWrap.classList.add('hidden');
+      }
+    }
+
     function openModal(notice) {
+      pendingImageFile = null;
+      imgFileInput.value = '';
       if (notice) {
         document.getElementById('admNoticeModalTitle').textContent = '공지 수정';
         document.getElementById('admNoticeId').value = notice.id;
@@ -1072,6 +1163,8 @@
         document.getElementById('admNoticePinned').checked = !!notice.pinned;
         document.getElementById('admNoticeTitle').value = notice.title;
         document.getElementById('admNoticeBody').value = notice.body || '';
+        imgUrlField.value = notice.imageUrl || '';
+        showPreview(notice.imageUrl || '');
       } else {
         document.getElementById('admNoticeModalTitle').textContent = '공지 작성';
         document.getElementById('admNoticeId').value = '';
@@ -1080,10 +1173,25 @@
         document.getElementById('admNoticePinned').checked = false;
         document.getElementById('admNoticeTitle').value = '';
         document.getElementById('admNoticeBody').value = '';
+        imgUrlField.value = '';
+        showPreview('');
       }
       modal.classList.add('show');
     }
     function closeModal() { modal.classList.remove('show'); }
+
+    imgFileInput.addEventListener('change', () => {
+      const file = imgFileInput.files[0];
+      if (!file) return;
+      pendingImageFile = file;
+      showPreview(URL.createObjectURL(file));
+    });
+    document.getElementById('admNoticeImageRemove').addEventListener('click', () => {
+      pendingImageFile = null;
+      imgFileInput.value = '';
+      imgUrlField.value = '';
+      showPreview('');
+    });
 
     document.getElementById('admNoticeNew').addEventListener('click', () => openModal());
     modal.querySelectorAll('[data-close-modal]').forEach(b => b.addEventListener('click', closeModal));
@@ -1096,16 +1204,20 @@
       });
     });
     document.querySelectorAll('[data-notice-del]').forEach(b => {
-      b.addEventListener('click', () => {
+      b.addEventListener('click', async () => {
         if (!confirm('공지사항을 삭제하시겠습니까?')) return;
-        RR_STORE.state.notices = RR_STORE.state.notices.filter(n => n.id !== +b.dataset.noticeDel);
-        RR_STORE.save();
-        toast('삭제되었습니다.');
-        render();
+        try {
+          await RR_STORE.deleteNoticeInSupabase(+b.dataset.noticeDel);
+          toast('삭제되었습니다.');
+          render();
+        } catch (e) {
+          console.error(e);
+          toast('삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        }
       });
     });
 
-    document.getElementById('admNoticeSave').addEventListener('click', () => {
+    document.getElementById('admNoticeSave').addEventListener('click', async () => {
       const id = document.getElementById('admNoticeId').value;
       const badge = document.getElementById('admNoticeBadge').value;
       const badgeLabelMap = { important: '중요', info: '안내', event: '이벤트' };
@@ -1115,58 +1227,65 @@
         title: document.getElementById('admNoticeTitle').value.trim(),
         date: document.getElementById('admNoticeDate').value,
         pinned: document.getElementById('admNoticePinned').checked,
-        body: document.getElementById('admNoticeBody').value.trim()
+        body: document.getElementById('admNoticeBody').value.trim(),
+        imageUrl: imgUrlField.value || null
       };
       if (!data.title || !data.date || !data.body) { toast('제목·등록일·내용을 모두 입력해 주세요.'); return; }
-      if (id) {
-        const n = RR_STORE.state.notices.find(x => x.id === +id);
-        if (n) Object.assign(n, data);
-      } else {
-        const nextId = (RR_STORE.state.notices.reduce((m, n) => Math.max(m, n.id), 0) || 0) + 1;
-        RR_STORE.state.notices.push({ id: nextId, ...data });
+      const saveBtn = document.getElementById('admNoticeSave');
+      saveBtn.disabled = true;
+      try {
+        if (pendingImageFile) {
+          data.imageUrl = await RR_STORE.uploadNoticeImage(pendingImageFile);
+        }
+        if (id) {
+          await RR_STORE.updateNoticeInSupabase(+id, data);
+        } else {
+          await RR_STORE.createNoticeInSupabase(data);
+        }
+        closeModal();
+        toast('저장되었습니다.');
+        render();
+      } catch (e) {
+        console.error(e);
+        toast('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      } finally {
+        saveBtn.disabled = false;
       }
-      RR_STORE.save();
-      closeModal();
-      toast('저장되었습니다.');
-      render();
     });
   }
 
   // ---- Gallery ----
   function bindAdminGallery() {
     document.querySelectorAll('[data-gal-del]').forEach(b => {
-      b.addEventListener('click', () => {
+      b.addEventListener('click', async () => {
         if (!confirm('이미지를 삭제하시겠습니까?')) return;
-        RR_STORE.state.gallery = RR_STORE.state.gallery.filter(g => g.id !== +b.dataset.galDel);
-        RR_STORE.save();
-        toast('삭제되었습니다.');
-        render();
+        try {
+          await RR_STORE.deleteGalleryImage(+b.dataset.galDel);
+          toast('삭제되었습니다.');
+          render();
+        } catch (e) {
+          console.error(e);
+          toast('삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        }
       });
     });
-    document.getElementById('admGalUpload').addEventListener('change', (e) => {
+    document.getElementById('admGalUpload').addEventListener('change', async (e) => {
       const files = Array.from(e.target.files || []);
       if (!files.length) return;
-      let done = 0;
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const nextId = (RR_STORE.state.gallery.reduce((m, g) => Math.max(m, g.id), 0) || 0) + 1 + done;
-          RR_STORE.state.gallery.push({ id: nextId, src: reader.result, caption: file.name.replace(/\.[^.]+$/, '') });
-          done++;
-          if (done === files.length) {
-            RR_STORE.save();
-            toast(`${files.length}장의 이미지가 업로드되었습니다.`);
-            render();
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      try {
+        await Promise.all(files.map(file => RR_STORE.uploadGalleryImage(file)));
+        toast(`${files.length}장의 이미지가 업로드되었습니다.`);
+        render();
+      } catch (err) {
+        console.error(err);
+        toast('업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      }
     });
   }
 
   // ---- Event info ----
   function bindAdminEvent() {
-    document.getElementById('admEventSave').addEventListener('click', () => {
+    document.getElementById('admEventSave').addEventListener('click', async () => {
       const upd = {};
       document.querySelectorAll('[data-ef]').forEach(inp => {
         const key = inp.dataset.ef;
@@ -1174,9 +1293,13 @@
         if (inp.type === 'number') v = parseInt(v, 10) || 0;
         upd[key] = v;
       });
-      Object.assign(RR_STORE.state.event, upd);
-      RR_STORE.save();
-      toast('행사 정보가 저장되었습니다.');
+      try {
+        await RR_STORE.saveEventToSupabase(upd);
+        toast('행사 정보가 저장되었습니다.');
+      } catch (e) {
+        console.error(e);
+        toast('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      }
     });
   }
 
@@ -1184,7 +1307,7 @@
   // ================================
   // Init
   // ================================
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     initRoute();
     document.getElementById('hamburger').addEventListener('click', toggleMobileMenu);
     document.querySelectorAll('#mobileMenu a').forEach(a => {
@@ -1197,6 +1320,12 @@
       }
       render();
     });
+    await Promise.all([
+      RR_STORE.loadEventFromSupabase(),
+      RR_STORE.loadPaceGroupsFromSupabase(),
+      RR_STORE.loadNoticesFromSupabase(),
+      RR_STORE.loadGalleryFromSupabase()
+    ]);
     render();
   });
 })();

@@ -1,16 +1,17 @@
 # 2026 River Run '세종' 참가신청 홈페이지 — 프로젝트 노트
 
-> **최종 업데이트**: 2026-08-28
-> **버전**: v4 (소개 페이지 이미지 교체 + 우리 강 러닝 코스 안내 추가 + 라이트박스)
+> **최종 업데이트**: 2026-08-31
+> **버전**: v5 (Supabase 백엔드 연동 — event/pace_groups/notices/gallery/applicants 전체)
 > **주최**: K-water 한국수자원공사 / **주관**: 케이워터운영관리(주) 친수사업부
 
 ---
 
 ## 📌 프로젝트 개요
 
-2026년 10월 17일(토) 세종보 홍보관 일원에서 개최되는 **River Run '세종' 10km 러닝 이벤트**의 참가신청 홈페이지 프로토타입.
+2026년 10월 17일(토) 세종보 홍보관 일원에서 개최되는 **River Run '세종' 10km 러닝 이벤트**의 참가신청 홈페이지.
 
-- **결과물 형태**: 단일 페이지 애플리케이션(SPA) — HTML/CSS/JavaScript 순수 구현
+- **결과물 형태**: 단일 페이지 애플리케이션(SPA) — HTML/CSS/JavaScript 순수 구현, 빌드 도구 없음
+- **백엔드**: Supabase (PostgreSQL + Storage) — 아래 "데이터 저장 방식" 참조
 - **디자인 방향**: K-water 브랜드 컬러 기반, 공공기관 톤의 깔끔한 정보 전달 위주
 - **반응형**: 데스크톱 · 태블릿 · 모바일 완전 대응
 - **주요 색상**:
@@ -26,32 +27,23 @@
 프로젝트 루트/
 ├── index.html                          # 메인 진입점 (라우팅, 헤더, 푸터)
 ├── PROJECT_NOTES.md                    # 이 문서
+├── supabase_schema.sql                 # Supabase 테이블·트리거·함수·Storage 버킷 SQL (SQL Editor에서 실행)
 │
 ├── assets/
 │   ├── css/
 │   │   └── style.css                   # 전체 디자인 시스템 + 반응형
 │   │
 │   ├── js/
-│   │   ├── data.js                     # 초기 데이터 + LocalStorage 스토어
+│   │   ├── supabase-client.js          # Supabase 프로젝트 URL/anon key 초기화
+│   │   ├── data.js                     # 초기 기본값 + Supabase 연동 RR_STORE
 │   │   ├── pages.js                    # 공개 페이지 렌더러 (7개 페이지)
-│   │   ├── admin.js                    # 관리자 페이지 렌더러 (로그인 + 7개 모듈)
+│   │   ├── admin.js                    # 관리자 페이지 렌더러 (로그인 + 6개 모듈)
 │   │   └── app.js                      # 라우팅 + 인터랙션 + 상태 관리
 │   │
-│   ├── img/
-│   │   ├── hero.jpg                    # 히어로 배경 (AI 생성)
-│   │   ├── ms1-riverside-running.jpg   # 소개 페이지 3장 (사용자 제공)
-│   │   ├── ms2-medal.jpg
-│   │   ├── ms3-highfive.jpg
-│   │   ├── course-yeoju.png            # 우리 강 코스 지도 4장
-│   │   ├── course-seungchon.png
-│   │   ├── course-gangjeong.png
-│   │   ├── course-sejong.png           # 2026 개최지
-│   │   ├── gallery-01-start.jpg        # 갤러리 이미지 6장 (AI 생성)
-│   │   ├── gallery-02-finish.jpg
-│   │   ├── gallery-03-pacer.jpg
-│   │   ├── gallery-04-aid.jpg
-│   │   ├── gallery-05-medal.jpg
-│   │   └── gallery-06-family.jpg
+│   ├── img/                            # 로컬 원본 이미지 (히어로·소개·코스지도)
+│   │   ├── hero-1.jpg ~ hero-3.jpg
+│   │   ├── ms1-riverside-running.jpg, ms2-medal.jpg, ms3-highfive.jpg
+│   │   └── course-yeoju.png, course-seungchon.png, course-gangjeong.png, course-sejong.png
 │   │
 │   ├── logo-kwater.png                 # K-water 로고 (컬러)
 │   ├── logo-kwater-white.png           # K-water 로고 (흰색, 푸터용)
@@ -88,17 +80,16 @@
 ### 2. 관리자 페이지 (7개 모듈)
 
 **접속 방법**: 푸터의 `관리자` 링크 → 로그인 페이지
-**데모 계정**: ID `admin` / PW `admin`
 
 | 모듈 | URL | 기능 |
 |---|---|---|
 | **로그인** | `#/admin` | ID/PW 인증 · 세션 기반 로그인 |
 | **대시보드** | `#/admin/dashboard` | 총 신청 건수 · 참가 인원 · 누적 참가비 · D-day · 페이스 그룹별 프로그레스 바 · 최근 신청 5건 |
 | **참가자 관리** | `#/admin/applicants` | 검색 · 유형/페이스 필터 · 상세 보기 · 수정 · 삭제 · CSV(엑셀) 다운로드 |
-| **페이스 그룹** | `#/admin/pace` | 정원 수정 · 신청 인원보다 작게 설정 방지 |
-| **공지사항** | `#/admin/notice` | 작성 · 수정 · 삭제 · 상단 고정 · 구분(중요/안내/이벤트) |
-| **갤러리** | `#/admin/gallery` | 이미지 다중 업로드 · 삭제 |
-| **행사 정보** | `#/admin/event` | 대회명 · 일시 · 장소 · 참가비 · 접수 기간 실시간 편집 |
+| **페이스 그룹** | `#/admin/pace` | 그룹별 신청 인원 통계만 표시 (정원 개념 없음 — 마감 기준 아님) |
+| **공지사항** | `#/admin/notice` | 작성 · 수정 · 삭제 · 상단 고정 · 구분(중요/안내/이벤트) · 이미지 첨부 |
+| **갤러리** | `#/admin/gallery` | 이미지 다중 업로드(자동 압축) · 삭제 |
+| **행사 정보** | `#/admin/event` | 대회명 · 일시 · 장소 · 참가비 · 접수 기간 · **모집 정원(전체)** · **입금 계좌** 실시간 편집 |
 
 ### 3. 디자인 시스템
 
@@ -120,202 +111,100 @@
 ### 5. 인터랙티브 요소
 
 - **D-day 실시간 카운트다운** — 대회 시작(2026.10.17 09:00)까지 초 단위 갱신
-- **인터랙티브 코스 지도** — 3개 핀(출발/보급소/반환점) 호버/클릭 시 툴팁 표시
-- **참가신청 4단계 스텝** — 진행바 · 이전/다음 · 유효성 검사 · localStorage 저장
-- **접수 확인** — 실제 신청 내역 조회 (이름·연락처·비밀번호 매칭)
-- **공지사항 상세 모달** — 목록 클릭 시 오버레이로 상세 보기
+- **참가신청 4단계 스텝** — 진행바 · 이전/다음 · 유효성 검사 · Supabase 저장
+- **선착순 정원 마감** — 유형(개인/가족/단체)별 잔여 인원 기준 자동 마감 처리 (기준: `event.max_capacity`)
+- **접수 확인 · 정보 수정** — 이름·연락처·비밀번호로 본인 신청 조회 및 수정 (서버에서 비밀번호 재검증)
+- **공지사항 상세 모달** — 목록 클릭 시 오버레이로 상세 보기, 이미지 첨부 지원
 - **관리자 CSV 다운로드** — 참가자 명단을 UTF-8 BOM 포함 CSV로 저장
-- **관리자 이미지 업로드** — FileReader로 base64 변환 → localStorage 저장
+- **관리자 입금확인** — 참가자별 입금 상태(대기/확인/취소) 처리
 - **모바일 햄버거 메뉴** — 풀스크린 오버레이
 
 ---
 
 ## ⚠️ 데이터 저장 방식 (중요!)
 
-### 현재 상태: LocalStorage 기반 프로토타입
+### 현재 상태: Supabase 백엔드 연동 완료
 
-**모든 데이터는 브라우저의 `localStorage`에만 저장됩니다.**
+**모든 데이터는 Supabase(PostgreSQL + Storage)에 저장되며, 방문자·기기·브라우저에 상관없이 공유됩니다.**
 
-```javascript
-// assets/js/data.js
-DEFAULTS          // 초기 샘플 데이터 (하드코딩)
-  └─ event        // 대회 정보
-  └─ paceGroups   // 페이스 그룹 (정원·신청 수)
-  └─ coursePins   // 코스 지도 핀 위치
-  └─ notices      // 공지사항 6건
-  └─ gallery      // 갤러리 이미지 6장
-  └─ faqs         // FAQ 4건
-  └─ applicants   // 샘플 참가자 5명
+```
+assets/js/supabase-client.js   → Project URL + anon key로 클라이언트 초기화
+assets/js/data.js              → RR_STORE: 테이블별 로드/생성/수정/삭제 메서드
 
-localStorage['rr_state_v2']  // 실제 저장 키
-sessionStorage['rr_admin_session']  // 관리자 로그인 세션
+Supabase 테이블 (supabase_schema.sql 참조)
+  ├─ event          단일 행(id=1), 대회 정보·접수기간·모집정원·입금계좌
+  ├─ pace_groups    master/runner/starter 고정 3행, 신청 인원 통계 전용 (정원 없음)
+  ├─ notices        공지사항 (이미지 첨부 가능 · notices 버킷)
+  ├─ gallery        갤러리 (이미지는 gallery 버킷)
+  └─ applicants     참가 신청자 (개인/가족/단체 공용, JSONB members)
+
+Storage 버킷: gallery, notices (둘 다 공개 버킷, 업로드 시 자동 압축)
+
+sessionStorage['rr_admin_session']  // 관리자 로그인 세션 (여전히 클라이언트 전용)
 ```
 
 **동작 흐름**:
-1. 첫 방문 시 `DEFAULTS`를 그대로 사용
-2. 사용자/관리자가 데이터를 변경하면 `RR_STORE.save()` 호출 → localStorage에 JSON 저장
-3. 페이지 새로고침 시 `loadState()`가 localStorage에서 복원
+1. 페이지 로딩 시 `event`/`pace_groups`/`notices`/`gallery`를 Supabase에서 비동기로 읽어 `RR_STORE.state`에 채움
+2. `applicants`는 개인정보 노출을 줄이기 위해 **전체 목록을 절대 미리 불러오지 않음** — 정원 체크는 합계 숫자만(`total_applied_count` RPC), 접수확인은 일치 건 1개만(`lookup_applicant` RPC) 서버에서 계산해 받음. 관리자 화면(대시보드·참가자 관리) 진입 시에만 전체 목록을 불러옴
+3. 등록·수정·삭제는 각 기능마다 즉시 Supabase에 반영 (더 이상 `RR_STORE.save()`로 로컬에 모아두지 않음)
+4. `pace_groups.applied`는 DB 트리거(`recalc_pace_applied`)가 `applicants` 변경 시마다 자동 재계산
 
-### 🚨 프로토타입의 한계
+### ⚠️ RLS(Row Level Security) 미적용 — 의도적 선택, 주의 필요
 
-| 문제 | 상세 설명 |
-|---|---|
-| **브라우저마다 다름** | 크롬에서 신청한 내역이 사파리에선 안 보임 |
-| **기기마다 다름** | PC에서 등록한 공지가 스마트폰에선 안 보임 |
-| **관리자↔사용자 데이터 분리** | 관리자가 만든 공지를 접속한 사용자가 보지 못함 (다른 브라우저면) |
-| **캐시 지우면 사라짐** | 브라우저 데이터 삭제 시 모든 신청 정보 소실 |
-| **동시 편집 불가** | 여러 관리자가 협업할 수 없음 |
-| **보안 없음** | 관리자 비밀번호 `admin/admin` 하드코딩, 클라이언트 검증만 |
+현재 모든 Supabase 테이블은 **RLS 없이 anon 키에 전체 읽기/쓰기가 열려 있습니다** (팀 결정사항). 즉:
+- `applicants` 테이블에 담긴 전화번호·주소·비밀번호(평문)도 anon 키만 있으면 이론적으로 직접 API 호출로 조회/수정/삭제가 가능합니다.
+- 위 3번 항목의 RPC 분리는 "화면에서 실수로 다 불러오는 것"은 막지만, **작정하고 API를 직접 호출하는 것까지는 막지 않습니다.**
+- 본인 정보 수정(`updateOwnApplicant`)만 서버에서 비밀번호를 재검증하도록 만들어 최소한의 방어선을 뒀습니다.
 
-**결론**: 지금 상태는 **UI/UX 검증용 프로토타입**입니다. 실제 참가자를 받는 서비스로는 사용 불가.
+**실서비스 전환 시 반드시**: RLS 활성화 + 정책 재설계, 비밀번호 해시 저장, 관리자 전용 작업은 Supabase Auth 기반 역할 검증으로 교체.
 
 ---
 
 ## 🚀 배포 관련 안내
 
-### Vercel + GitHub 배포 시
-
-Vercel은 정적 파일(HTML/CSS/JS)만 호스팅하는 서비스로, **자체 서버 저장소를 제공하지 않습니다.**
+### Vercel + GitHub 배포
 
 ```
-GitHub Push → Vercel 자동 배포 → https://your-project.vercel.app
+GitHub Push → Vercel 자동 배포 → https://your-domain.vercel.app
 ```
 
-**결과**:
-- ✅ 전 세계 어디서든 접속 가능
-- ✅ 자동 HTTPS
-- ✅ 빠른 CDN 배포
-- ❌ **데이터는 여전히 각 방문자의 브라우저에만 저장** (실제 서비스 불가)
-- ❌ 관리자가 등록한 공지를 다른 사람이 볼 수 없음
-- ❌ 사용자 신청 내역이 관리자에게 전달되지 않음
+- ✅ 전 세계 어디서든 접속 가능, 자동 HTTPS, CDN
+- ✅ **데이터가 Supabase에 중앙 저장되므로 누가 어느 기기로 접속해도 동일하게 보임**
+- ✅ 관리자가 등록한 공지·갤러리·행사정보가 모든 방문자에게 즉시 반영
+- ✅ 신청 내역이 실제로 관리자에게 전달됨 (같은 DB를 봄)
 
-**Vercel 배포는 데모/시연/승인 목적으로만 유용합니다.**
+Supabase 연결에 필요한 값(`assets/js/supabase-client.js`의 URL/anon key)은 정적 사이트 특성상 빌드 과정이 없어 **코드에 직접 하드코딩**되어 있습니다. `anon` 키는 원래 공개돼도 되는 키이므로 이 자체는 문제가 아니지만, 위 RLS 항목을 꼭 함께 고려하세요.
 
 ---
 
-## 🔨 실서비스로 만들려면 (해야 하는 작업)
+## 🔨 남은 작업 (실서비스 전환 시)
 
-### 1. 백엔드 개발 (필수)
+백엔드(Supabase) 연동은 완료됐습니다. 남은 것은 아래 항목들입니다.
 
-**추천 스택**:
-
-#### 옵션 A: Vercel + Supabase (추천 · 무료 티어 시작)
-```
-프론트엔드    → Vercel (지금 만든 홈페이지)
-데이터베이스  → Supabase (PostgreSQL)
-인증          → Supabase Auth
-파일 저장소   → Supabase Storage (갤러리 이미지용)
-```
-
-#### 옵션 B: Vercel + Firebase
-```
-프론트엔드   → Vercel
-DB           → Firestore
-인증         → Firebase Auth
-스토리지     → Firebase Storage
-```
-
-#### 옵션 C: Vercel Serverless + Vercel Postgres
-```
-프론트엔드 + API → Vercel (Next.js/Serverless Functions)
-DB               → Vercel Postgres 또는 Neon
-```
-
-### 2. 필요한 백엔드 기능 목록
-
-- [ ] **참가자 등록 API** — POST /api/applicants
-- [ ] **참가자 조회 API** — GET /api/applicants (관리자용, 검색·필터)
-- [ ] **참가자 조회 API** — POST /api/applicants/lookup (사용자, 이름·연락처·비밀번호)
-- [ ] **참가자 수정 API** — PATCH /api/applicants/:id
-- [ ] **참가자 삭제 API** — DELETE /api/applicants/:id
-- [ ] **공지사항 CRUD** — GET/POST/PATCH/DELETE /api/notices
-- [ ] **갤러리 이미지 CRUD** — 파일 업로드 스토리지 연동
-- [ ] **행사 정보 GET/PATCH** — /api/event
-- [ ] **페이스 그룹 정원 GET/PATCH** — /api/pace-groups
-- [ ] **FAQ CRUD** — /api/faqs
-- [ ] **관리자 인증** — JWT/세션 기반, 비밀번호 해시(bcrypt)
-- [ ] **파일 업로드** — 갤러리 이미지 저장소 (S3/Cloudinary/Supabase Storage 등)
-
-### 3. 프론트엔드 수정 사항
-
-지금 코드의 `RR_STORE`와 `localStorage` 호출부를 모두 `fetch()` API 호출로 교체:
-
-```javascript
-// 지금 (프로토타입)
-RR_STORE.state.applicants.push(record);
-RR_STORE.save();
-
-// 백엔드 연동 후
-await fetch('/api/applicants', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(record)
-});
-```
-
-### 4. 추가 필수 기능 (실서비스 시)
-
-- [ ] **결제 연동** — 참가비 15,000원 실결제 (토스페이먼츠, 카카오페이 등)
-- [ ] **환불 처리** — 접수 기간 중 환불 로직
-- [ ] **이메일 알림** — 신청 완료·공지 발송 (SendGrid, AWS SES)
-- [ ] **SMS 알림** — 신청 확인 (Coolsms, Naver Cloud SMS)
-- [ ] **개인정보 암호화** — DB 저장 시 주민번호·연락처 암호화
-- [ ] **개인정보처리방침** — 실제 법적 문서 작성
-- [ ] **이용약관** — 실제 법적 문서 작성
-- [ ] **환불 정책** — 실제 정책 문서 작성
-- [ ] **보안** — HTTPS, CSRF/XSS 방어, Rate Limiting, WAF
-- [ ] **관리자 계정 관리** — 여러 관리자, 권한 분리
-- [ ] **감사 로그** — 관리자 작업 이력 기록
-- [ ] **백업** — 정기 DB 백업
-- [ ] **모니터링** — 에러 트래킹(Sentry), 성능 모니터링
-
-### 5. 실서비스 개발 규모 (참고)
-
-| 작업 | 예상 소요 |
-|---|---|
-| 백엔드 API 개발 | 2~3주 |
-| 프론트엔드 백엔드 연동 | 1~2주 |
-| 결제 연동 | 1주 |
-| 이메일/SMS 알림 | 3~5일 |
-| 보안 · 인증 강화 | 1주 |
-| 관리자 권한 관리 | 3~5일 |
-| 테스트 · QA | 1~2주 |
-| **총합** | **약 6~9주 (백엔드 개발자 1명 기준)** |
-
----
+- [ ] **RLS 활성화 + 정책 설계** — 지금은 전체 공개 접근 상태
+- [ ] **비밀번호 해시 저장** — 신청확인 비밀번호가 현재 평문
+- [ ] **관리자 인증 강화** — 현재 `admin/admin2026` 하드코딩 → Supabase Auth 기반으로 교체, 다중 관리자·권한 분리
+- [ ] **결제 연동** — 참가비 실결제 (토스페이먼츠, 카카오페이 등) + 입금 대사 자동화 (지금은 관리자가 수동으로 "입금확인" 처리)
+- [ ] **이메일/SMS 알림** — 신청 완료·공지 발송
+- [ ] **개인정보 암호화** — DB 저장 시 연락처·주소 등 암호화
+- [ ] **법적 문서 검토** — 개인정보처리방침 · 이용약관 · 환불정책 실제 법무 검토
+- [ ] **동시 신청 레이스 컨디션 방지** — 마감 임박 시 정원 초과 등록 가능성 (현재는 클라이언트 기준 근사치 마감만 적용, DB 트랜잭션 기반 원자적 처리 아님)
+- [ ] **감사 로그 · 백업 · 모니터링**
 
 ## ⚡ 주의점 · 알려진 이슈
 
 ### 1. 브라우저 캐시 이슈
-- 스크립트 파일에 `?v=2` 쿼리스트링을 붙여 캐시 무효화 처리 중
-- 향후 코드 수정 시 버전 번호를 올려야 반영됨 (예: `?v=3`)
+- 스크립트 파일에 `?v=37` 쿼리스트링을 붙여 캐시 무효화 처리 중
+- 코드 수정 시 `index.html`의 모든 `?v=` 버전 번호를 올려야 반영됨
 
-### 2. 관리자 접근 보안 없음
-- 현재 `admin/admin` 하드코딩
-- 배포 시 반드시 실제 인증 시스템으로 교체 필요
-- 소스코드에서 계정 정보가 노출되므로 실서비스 절대 불가
-
-### 3. 데이터 초기화 방법
-- 브라우저 개발자 도구 → Application → Local Storage → `rr_state_v2` 삭제
-- 또는 콘솔에서: `localStorage.removeItem('rr_state_v2'); location.reload();`
-
-### 4. 갤러리 이미지 업로드
-- 관리자가 업로드한 이미지는 base64로 localStorage에 저장됨
-- localStorage 용량 제한(약 5~10MB)이 있어 대용량/다수 이미지 업로드 시 실패 가능
-- 실서비스 시 반드시 파일 스토리지 서비스 연동 필요
-
-### 5. 코스 지도 · 주차 지도
+### 2. 코스 지도 · 주차 지도
 - 이미지 파일로 삽입되어 있음 (`course-map.png`, `parking-map.png`)
 - 실제 지도 서비스 연동(카카오맵, 네이버지도 등)은 미구현
 - 필요 시 iframe 임베드 또는 API 연동으로 대체 가능
 
-### 6. 갤러리 이미지 (AI 생성)
-- 현재 갤러리 이미지 6장은 AI로 생성한 임시 이미지
-- 실제 대회 종료 후 실제 사진으로 교체 필요
-
-### 7. 참고 사이트 링크
-- 소개 페이지의 riverguide.go.kr 링크는 실제 사이트로 이동
-- 링크가 유효한지 주기적 확인 필요
+### 3. 갤러리 이미지
+- `assets/img/gallery-*.jpg` 6장은 초기 개발 시 사용한 AI 생성 샘플 이미지로, **로컬 파일로만 남아있고 실제 사이트 갤러리 화면에는 표시되지 않습니다** (갤러리는 이제 Supabase `gallery` 테이블/버킷을 그대로 읽으며, 현재 비어 있는 상태)
+- 실제 사진은 관리자 페이지(`#/admin/gallery`)에서 업로드해야 화면에 노출됨 (업로드 시 자동 압축)
 
 ---
 
@@ -385,95 +274,11 @@ await fetch('/api/applicants', {
 
 ---
 
-## 📊 데이터 스키마 (참고용)
+## 📊 데이터 스키마
 
-백엔드 개발 시 참고할 데이터 구조:
+실제 테이블·컬럼·트리거·RPC 함수·Storage 버킷 정의는 **[`supabase_schema.sql`](./supabase_schema.sql)** 이 원본입니다. 이 문서에 별도로 스키마를 중복 기술하지 않습니다 (예전엔 여기 TypeScript로 따로 적어뒀었는데, 실제 스키마가 바뀔 때마다 같이 안 고쳐져서 계속 어긋났습니다 — 그래서 SQL 파일 하나만 기준으로 삼기로 정리).
 
-```typescript
-// 대회 정보
-Event {
-  title: string
-  date: datetime           // 대회 시작 일시
-  location: string
-  distance: string         // "10km (단일)"
-  fee: number              // 15000
-  host: string
-  organizer: string
-  applyOpen: datetime      // 접수 시작
-  applyClose: datetime     // 접수 마감
-}
-
-// 페이스 그룹
-PaceGroup {
-  id: 'master' | 'runner' | 'starter'
-  label: string
-  desc: string             // "50분 이내 완주"
-  capacity: number         // 정원
-  applied: number          // 현재 신청 인원 (자동 계산)
-}
-
-// 참가자 (개인)
-Applicant_Individual {
-  id: string               // "RR-100001"
-  type: 'individual'
-  name: string
-  birth: string            // "YYYY-MM-DD"
-  phone: string
-  email: string?
-  address: string
-  gender: 'male' | 'female'
-  size: 'S' | 'M' | 'L' | 'XL'
-  pace: 'master' | 'runner' | 'starter'
-  password: string         // 해시 저장 필수
-  createdAt: datetime
-}
-
-// 참가자 (단체/가족)
-Applicant_Group {
-  id: string
-  type: 'group'
-  teamName: string
-  leaderName: string
-  phone: string
-  email: string?
-  address: string
-  pace: 'master' | 'runner' | 'starter'
-  password: string         // 해시 저장 필수
-  createdAt: datetime
-  members: Array<{
-    name: string
-    birth: string
-    phone: string
-    gender: 'male' | 'female'
-    size: 'S' | 'M' | 'L' | 'XL'
-  }>
-}
-
-// 공지사항
-Notice {
-  id: number
-  badge: 'important' | 'info' | 'event'
-  badgeLabel: string       // '중요', '안내', '이벤트'
-  title: string
-  body: string
-  date: string             // "YYYY-MM-DD"
-  pinned: boolean
-}
-
-// 갤러리
-GalleryImage {
-  id: number
-  src: string              // 이미지 URL (스토리지)
-  caption: string
-}
-
-// FAQ
-FAQ {
-  id: number
-  q: string
-  a: string
-}
-```
+요약하면 5개 테이블(`event`, `pace_groups`, `notices`, `gallery`, `applicants`) + 2개 Storage 버킷(`gallery`, `notices`) + 트리거 1개(`recalc_pace_applied`) + RPC 함수 2개(`total_applied_count`, `lookup_applicant`)로 구성되어 있습니다. `faqs`, `coursePins`는 화면에서 실제로 쓰이지 않아 Supabase에 아예 만들지 않았습니다.
 
 ---
 
@@ -489,26 +294,24 @@ FAQ {
 
 ## 🎯 다음 단계 체크리스트
 
-### 단기 (프로토타입 개선)
-- [ ] 디자인 최종 확정 (색상, 폰트, 레이아웃 리뷰)
-- [ ] 콘텐츠 확정 (공지사항 실제 문구, 개인정보처리방침 등)
-- [ ] 갤러리 실제 사진으로 교체 (대회 종료 후)
-- [ ] Vercel에 데모 배포 (이해관계자 리뷰용)
+### 완료됨
+- [x] Supabase 백엔드 연동 (event / pace_groups / notices / gallery / applicants)
+- [x] GitHub 저장소 생성 + push
+- [x] 갤러리·공지 이미지 Storage 업로드 + 자동 압축
+- [x] 선착순 정원 마감 로직 (유형별 임계값)
+- [x] 관리자 계정 코드 노출 정리
 
-### 중기 (실서비스 준비)
-- [ ] 백엔드 개발자 협업 시작
-- [ ] 데이터베이스 설계 확정
-- [ ] API 명세 작성
-- [ ] 결제 연동 방식 결정 (PG사 선정)
+### 남은 것
+- [ ] Vercel 배포 + 실제 도메인 연결 (`your-domain.vercel.app` 자리 채우기)
+- [ ] RLS 활성화 + 정책 설계
+- [ ] 비밀번호 해시 저장
+- [ ] 관리자 인증을 Supabase Auth로 교체
+- [ ] 결제 연동 (PG사 선정)
 - [ ] 이메일/SMS 알림 서비스 선정
-
-### 장기 (실서비스 개시)
-- [ ] 백엔드 개발 완료
-- [ ] 프론트엔드 백엔드 연동 완료
-- [ ] 보안 검토 · 개인정보 취급 방침 확정
-- [ ] 스트레스 테스트 (동시 접속 대응)
-- [ ] 실서비스 오픈
+- [ ] 개인정보처리방침 · 이용약관 · 환불정책 법무 검토
+- [ ] 동시 신청 레이스 컨디션 방지 (DB 트랜잭션 기반)
+- [ ] 갤러리 실제 사진으로 교체 (대회 종료 후)
 
 ---
 
-*본 문서는 프로젝트 진행 상황을 정리한 내부 문서로, 프로토타입 개발 완료 시점(2026-08-28)까지의 내용을 담고 있습니다.*
+*본 문서는 프로젝트 진행 상황을 정리한 내부 문서입니다. 최신 상태 기준: 2026-08-31.*

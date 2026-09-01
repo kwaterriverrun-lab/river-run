@@ -13,32 +13,25 @@
 
 ---
 
-## About the Design Files
+## About This Codebase
 
-이 번들에 포함된 HTML/CSS/JS 파일들은 **디자인 레퍼런스(design reference)**입니다.
-즉, 최종 UI 룩앤필과 상호작용을 검증하기 위한 프로토타입이며, **그대로 프로덕션에 배포하는 코드가 아닙니다.**
+빌드 도구 없는 순수 HTML/CSS/JS SPA이며, **Supabase(PostgreSQL + Storage)를 백엔드로 실제 연동되어 있습니다.**
+`localStorage`는 더 이상 데이터 저장에 쓰이지 않습니다 — 신청·공지·갤러리·행사정보 전부 Supabase에 저장되고, 방문자·기기·브라우저에 상관없이 동일하게 보입니다.
 
-작업자의 목표는 이 HTML 디자인을 **대상 코드베이스의 기존 환경**에서 다시 구현하는 것입니다:
-- 기존 프론트엔드 스택(React / Vue / Next.js / SvelteKit 등)이 있으면 그 프레임워크의 컨벤션과 컴포넌트 라이브러리를 사용
-- 기존 환경이 없으면 프로젝트에 가장 적합한 프레임워크를 선택하여 구현
-- **백엔드 연동이 필수** (아래 "실서비스 전환 시 필수 작업" 참조)
-
-프로토타입은 브라우저 `localStorage` 기반으로 데이터를 저장하므로 실사용 불가능한 환경입니다.
+이 코드를 다른 프레임워크(React/Next.js 등)로 다시 구현할 계획이 있다면 아래 UI 스펙(색상·타이포·레이아웃)을 참고하되, 데이터 연동 로직은 `assets/js/data.js`의 `RR_STORE`와 `supabase_schema.sql`을 기준으로 삼으면 됩니다. 지금 상태 그대로도 Vercel에 배포해 실사용이 가능합니다 (남은 작업은 PROJECT_NOTES.md의 "남은 작업" 참조).
 
 ---
 
 ## Fidelity
 
-**High-fidelity (hi-fi) · 하이파이 프로토타입**입니다.
+**High-fidelity (hi-fi)** — 디자인뿐 아니라 데이터 연동까지 실제로 동작합니다.
 
 - 최종 색상 팔레트(K-water 브랜드 컬러) 확정
 - Pretendard Variable 폰트 확정
 - 여백·타이포·라운드·그림자 등 모든 디자인 토큰 확정
 - 인터랙션·애니메이션(히어로 슬라이드쇼, D-day, 라이트박스 등) 실제 동작 구현
 - 반응형 브레이크포인트 3단계 (960px / 560px) 실제 동작
-- 참가신청 4단계 실제 동작, 유효성 검증 포함
-
-작업자는 이 디자인을 **픽셀 단위로 재현**하되, 대상 코드베이스의 컴포넌트 라이브러리 (예: shadcn/ui, MUI, Chakra 등)를 활용해 구현하면 됩니다.
+- 참가신청 4단계 실제 동작, 유효성 검증 포함, Supabase 저장
 
 ---
 
@@ -170,14 +163,15 @@
 - 선택 시 border-color: kw-blue + bg: kw-lblue-soft
 - 하단 [홈으로] [다음 단계] 버튼 (선택 전 다음 단계 disabled)
 
+**선착순 정원 마감**: `event.max_capacity`에서 전체 신청 인원(서버 RPC `total_applied_count`)을 뺀 잔여 인원이 유형별 기준(개인 1명 / 가족 7명 / 단체 15명) 미만이면 해당 카드가 회색으로 비활성화되고 "마감" 배지가 표시됨. 페이스 그룹(Master/Runner/Starter)에는 정원 개념이 없으며 순수 통계용입니다.
+
 ##### Step 2 · 약관 동의
 
 - 상단 "모든 약관에 동의합니다 (필수)" 마스터 체크 (surface-2 배경)
-- 4개 아코디언 (agree-box):
+- 3개 아코디언 (agree-box):
   1. 개인정보 수집·이용 동의
-  2. 개인정보 제3자 제공 동의
-  3. 초상권 이용 동의
-  4. 참가자 준수사항 동의
+  2. 초상권 이용 동의
+  3. 참가자 준수사항 동의
 - 각 아코디언은 head 클릭 시 접힘/펼침 (chevron 180° 회전)
 - 하단 [이전] [다음 단계] (전체 동의 안 하면 toast 알림)
 
@@ -216,17 +210,18 @@
 - **complete-mark** 64px 원형 kw-blue 체크 아이콘
 - 제목 "참가 신청이 완료되었습니다"
 - **complete-summary**: 접수번호 · 신청 유형 · 신청자 · 페이스 (max-width 460px)
+- **참가비 입금 안내 박스** — 행사정보에 등록된 계좌·금액 표시 + "입금 확인 전까지 임시 접수 상태" 안내 (계좌 미등록 시 숨김)
 - [접수 확인하기] [홈으로] 두 버튼
 
-**접수번호 형식**: `RR-XXXXXX` (6자리, `Date.now().slice(-6)`)
+**접수번호 형식**: `RR-XXXXXX` (Postgres 시퀀스 `applicant_seq`가 `100001`부터 자동 채번, DB에서 생성)
 
 ---
 
 #### 5. 접수 확인 (`#/lookup`)
 
-**Purpose**: 이미 신청한 사용자가 내역 조회
+**Purpose**: 이미 신청한 사용자가 내역을 조회하고 본인 정보를 직접 수정
 
-**Layout**: max-width 480px 중앙 카드
+**Layout**: max-width 480px 중앙 카드 (수정 화면은 max-width 840px로 확장)
 
 **Fields**:
 - 이름 (개인=name, 가족·단체=leaderName 또는 teamName 매칭)
@@ -234,9 +229,11 @@
 - 신청확인 비밀번호
 
 **Behavior**:
-- 매칭 성공 시 `lookup-result` 표시 (kw-lblue-soft 배경, dl-row 상세)
+- 조회는 Supabase RPC `lookup_applicant(name, phone, password)`로 서버에서 일치 건 1개만 반환 (전체 명단은 클라이언트에 내려오지 않음)
+- 매칭 성공 시 `lookup-result` 표시 (kw-lblue-soft 배경, dl-row 상세 + 입금상태 배지)
 - 실패 시 `lookup-noresult` 빨간 경고 표시
 - 개인: 티셔츠 사이즈 표시 / 가족·단체: 참가 인원 수 표시
+- **"참가 정보 수정" 버튼** — 접수 마감(`event.apply_close`) 이전에만 활성화. 클릭 시 신청 당시와 동일한 입력 폼이 현재 값으로 채워져 나타나고, 저장 시 서버에서 비밀번호를 재검증한 뒤에만 반영됨
 
 ---
 
@@ -255,14 +252,14 @@
 
 **Behavior**:
 - 상단 고정(pinned) 공지는 정렬 시 최상단, 제목에 "[공지] " 접두어 + bold
-- 항목 클릭 시 모달 오버레이 열림 (제목 + 배지 + 날짜 + 본문 라인 브레이크 유지)
+- 항목 클릭 시 모달 오버레이 열림 (제목 + 배지 + 날짜 + 이미지(있으면) + 본문 라인 브레이크 유지)
 - 모달 닫기: X 버튼 / 오버레이 클릭 / ESC 키
 
 ---
 
 #### 7. 갤러리 (`#/gallery`)
 
-**Purpose**: 지난 대회 사진 그리드 (현재는 AI 생성 임시 이미지)
+**Purpose**: 대회 사진 그리드. 관리자가 업로드한 이미지가 그대로 표시됨 (Supabase `gallery` 테이블/버킷, 현재 비어있는 상태 — 로컬 `assets/img/gallery-*.jpg`는 화면에 안 쓰이는 초기 샘플 파일)
 
 **Layout**:
 - 3열 그리드 (`repeat(3, 1fr)`, gap 16px)
@@ -281,7 +278,7 @@
 2. 개인정보의 수집·이용 목적
 3. 개인정보의 보유 및 이용기간
 4. 개인정보의 제3자 제공
-5. 개인정보 처리의 위탁 (수탁업체: ㈜러닝브레이커)
+5. 개인정보 처리의 위탁 (수탁업체: Supabase, Inc. — DB 서버 보관·운영)
 6. 정보주체의 권리 및 행사 방법
 7. 개인정보의 안전성 확보 조치
 8. 개인정보 보호책임자
@@ -297,7 +294,7 @@
 
 ### 관리자 사이트 (6개 모듈)
 
-관리자 접근: 푸터 [관리자] 링크 → 로그인 페이지 → 데모 계정 `admin` / `admin`
+관리자 접근: 푸터 [관리자] 링크 → 로그인 페이지
 로그인 세션은 `sessionStorage['rr_admin_session'] = '1'`
 
 **Admin Layout**:
@@ -310,50 +307,55 @@
 
 - **stat-grid 4열 카드**:
   - 총 신청 건수 (개인 N · 가족 N · 단체 N 부제)
-  - 총 참가 인원 (모집 정원 부제)
+  - 총 참가 인원 (모집 정원 = `event.max_capacity` 부제)
   - 누적 참가비 (만원 단위)
   - 대회까지 (일 단위 D-day)
-- **페이스 그룹별 신청 현황**: 3개 pace-row (이름·설명 · progress bar · 신청/정원 · %)
+- **페이스 그룹별 신청 현황**: 3개 pace-row (이름·설명 · progress bar · 신청 인원 · 전체 대비 %) — 정원 개념 없음, 순수 통계
 - **최근 신청 5건**: admin-table
+- 이 페이지 진입 시에만 `applicants` 전체를 Supabase에서 로드함 (다른 공개 페이지에서는 불러오지 않음)
 
 #### Admin 2 · 참가자 관리 (`#/admin/applicants`)
 
 - **툴바**: 검색(이름·연락처·접수번호) + 유형 필터(전체/개인/가족/단체) + 페이스 필터
-- **[CSV 다운로드]** 우측 상단 버튼 (UTF-8 BOM CSV)
-- **admin-table**: [체크박스] · 접수번호(monospace) · 유형 배지 · 신청자 · 연락처 · 페이스 · 인원 · 신청일 · [상세][수정][삭제]
-- **상세 모달**: 참가자 전체 정보 + 참가자 명단(단체·가족) 서브 테이블
+- **[CSV 다운로드]** 우측 상단 버튼 (UTF-8 BOM CSV, 입금상태 컬럼 포함)
+- **admin-table**: [체크박스] · 접수번호(monospace) · 유형 배지 · 신청자 · 연락처 · 페이스 · 인원 · **입금상태 배지** · 신청일 · [입금확인(대기 상태일 때만)][상세][수정][삭제]
+- **상세 모달**: 참가자 전체 정보 + 입금상태 + 참가자 명단(단체·가족) 서브 테이블
 - **수정 모달**: 이름·연락처·주소·페이스 편집 (family는 "가족 이름", group은 "단체명")
 - **삭제 확인**: `confirm()` 다이얼로그
-- 모든 데이터 변경 시 `RR_STORE.syncPaceApplied()`로 페이스 정원 자동 재집계
+- 모든 데이터 변경(등록/수정/삭제) 시 DB 트리거(`recalc_pace_applied`)가 페이스 그룹 통계를 자동 재집계 — 클라이언트에서 별도 계산 호출 없음
 
 **유형 배지 색상** (`.badge` 클래스):
 - 개인: `gray` (bg: surface-2, color: text-2)
 - 가족: `green` (bg: #F0FDF4, color: #14804A)
 - 단체: `blue` (bg: kw-lblue-soft, color: kw-blue)
 
+**입금상태 배지**: 대기(`gray`) · 확인(`green`) · 취소(`red`)
+
 #### Admin 3 · 페이스 그룹 (`#/admin/pace`)
 
-- 3 pace-row: {이름·설명} | progress bar | {신청·잔여} | 정원 입력창
-- [변경사항 저장] 우측 상단
-- 검증: 신청 인원보다 정원을 작게 설정 불가
+- 3 pace-row: {이름·설명} | progress bar | {신청 인원} | {전체 대비 %}
+- 정원 입력·저장 기능 없음 — 순수 조회용 통계 페이지. 화면에 "선착순 마감 기준은 행사 정보의 모집 정원(전체)"라고 명시
 
 #### Admin 4 · 공지사항 (`#/admin/notice`)
 
 - admin-table: 구분 배지 · 제목 · 등록일 · [수정][삭제]
 - 상단 [+ 새 공지 작성] 버튼
-- 작성/수정 모달: 구분(select: 중요/안내/이벤트) · 등록일(date) · 상단 고정(checkbox) · 제목 · 내용(textarea 10 rows)
+- 작성/수정 모달: 구분(select: 중요/안내/이벤트) · 등록일(date) · 상단 고정(checkbox) · 제목 · 내용(textarea 10 rows) · **첨부 이미지**(업로드 시 미리보기 + 제거 가능)
+- 이미지 교체·제거·공지 삭제 시 Storage의 이전 파일도 함께 정리됨 (고아 파일 안 남음)
 
 #### Admin 5 · 갤러리 (`#/admin/gallery`)
 
 - 4열 그리드 (모바일 2열)
 - 좌상단 업로드 버튼 (dashed border + 플러스 아이콘, `<input type="file" multiple>`)
 - 각 이미지 우상단 삭제 버튼 (rgba(0,0,0,0.6) 원형)
-- 이미지는 FileReader로 base64 변환 후 localStorage 저장 (실서비스는 파일 스토리지 연동 필요)
+- 업로드 시 클라이언트에서 자동으로 리사이즈·압축(최대 1600px, JPEG) 후 Supabase Storage(`gallery` 버킷)에 저장, DB에는 공개 URL만 저장
+- 삭제 시 DB 행과 Storage 파일이 함께 삭제됨
 
 #### Admin 6 · 행사 정보 (`#/admin/event`)
 
-- 기본 정보 블록: 대회명 · 대회 일시(datetime-local) · 종목·거리 · 행사 장소 · 참가비(number) · 주최 · 주관
+- 기본 정보 블록: 대회명 · 대회 일시(datetime-local) · 종목·거리 · 행사 장소 · 참가비(number) · 주최 · 주관 · **모집 정원(전체)**
 - 접수 기간 블록: 접수 시작 · 접수 마감 (datetime-local)
+- **입금 계좌 안내 블록**: 은행명 · 계좌번호 · 예금주 (참가신청 완료 화면에 그대로 표시됨)
 - [변경사항 저장] 우측 상단
 - 저장 시 홈페이지 히어로·대회 안내 페이지에 즉시 반영
 
@@ -417,20 +419,24 @@
 
 ## State Management
 
-### 클라이언트 상태 (프로토타입)
+### 서버 상태 — Supabase
 
-**Global Store** — `RR_STORE.state` (LocalStorage 키: `rr_state_v2`)
+`RR_STORE.state`(`assets/js/data.js`)는 이제 로컬 캐시일 뿐이고, 실제 소스는 Supabase입니다. 정확한 테이블/컬럼 정의는 **[`supabase_schema.sql`](./supabase_schema.sql)** 참조.
+
 ```
-{
-  event: { title, date, location, distance, fee, host, organizer, applyOpen, applyClose },
-  paceGroups: [ { id, label, desc, capacity, applied } ],
-  coursePins: [ { x, y, type, title, desc } ],  // 대회안내 지도 핀 (v10에서 미사용)
-  notices: [ { id, badge, badgeLabel, title, body, date, pinned } ],
-  gallery: [ { id, src, caption } ],
-  faqs: [ ... ],  // 사용 안 함 (미노출)
-  applicants: [ /* 아래 참조 */ ]
+RR_STORE.state = {
+  event:       { title, date, location, distance, fee, host, organizer,
+                 applyOpen, applyClose, maxCapacity, bankName, accountNumber, accountHolder },
+  paceGroups:  [ { id, label, desc, applied } ],   // 정원 없음, 통계 전용
+  notices:     [ { id, badge, badgeLabel, title, body, imageUrl, date, pinned } ],
+  gallery:     [ { id, src, caption } ],
+  applicants:  [ /* 관리자 화면 진입 시에만 채워짐 — 공개 페이지에서는 비어있음 */ ]
 }
 ```
+
+로딩 시점:
+- `event` / `paceGroups` / `notices` / `gallery` → 모든 페이지 최초 로딩 시 함께 불러옴
+- `applicants` → `#/admin/dashboard`, `#/admin/applicants` 진입 시에만 전체 로드. 공개 페이지(참가신청·접수확인)는 RPC(`total_applied_count`, `lookup_applicant`)로 필요한 값만 서버에서 계산해 받음 — 전체 신청자 개인정보가 불필요하게 브라우저에 실리지 않도록 하기 위함
 
 **Apply State** — `RR_APP.applyState` (메모리, 페이지 이탈 시 리셋)
 ```
@@ -440,53 +446,23 @@
   agrees: { a1, a2, a3, a4 },
   members: [ {}, ... ],   // 가족·단체
   selectedPace, selectedSize, selectedGender,
+  totalApplied: number|null,  // #/apply 진입 시 비동기로 채워지는 정원 판단용 캐시
   result: /* 완료된 record */
 }
 ```
 
-**Admin Session** — `sessionStorage['rr_admin_session'] === '1'`
+**Admin Session** — `sessionStorage['rr_admin_session'] === '1'` (여전히 클라이언트 전용 세션, 계정은 `assets/js/app.js`에 하드코딩)
 
-### 실서비스 전환 시 필수 작업 (백엔드)
+### RLS 미적용 상태 — 실서비스 전환 시 처리 필요
 
-프로토타입은 LocalStorage 기반이라 실사용 불가. **반드시 백엔드 API로 교체**:
+지금은 Supabase RLS(Row Level Security)를 켜지 않고 `anon` 키에 모든 테이블 읽기/쓰기를 열어둔 상태입니다(팀 결정). 실서비스 전환 시 RLS 활성화, 비밀번호 해시 저장, 관리자 작업의 Supabase Auth 기반 권한 검증이 필요합니다. 자세한 내용은 `PROJECT_NOTES.md`의 "남은 작업" 참조.
 
-**필수 REST 엔드포인트**:
-```
-POST   /api/applicants          참가 신청
-GET    /api/applicants          목록 조회 (관리자, 검색·필터)
-POST   /api/applicants/lookup   본인 신청 조회 (이름·연락처·비밀번호)
-PATCH  /api/applicants/:id      수정
-DELETE /api/applicants/:id      삭제
-GET    /api/applicants/export   CSV 다운로드
+### 아직 없는 것 (실서비스 전환 시 필요)
 
-GET    /api/notices             공지 목록
-POST   /api/notices             공지 작성
-PATCH  /api/notices/:id         공지 수정
-DELETE /api/notices/:id         공지 삭제
-
-GET    /api/gallery             갤러리 이미지 목록
-POST   /api/gallery             이미지 업로드 (multipart)
-DELETE /api/gallery/:id         이미지 삭제
-
-GET    /api/event               행사 정보
-PATCH  /api/event               행사 정보 수정
-
-GET    /api/pace-groups         페이스 그룹
-PATCH  /api/pace-groups         정원 일괄 수정
-
-POST   /api/admin/login         관리자 로그인 (JWT/세션 발급)
-POST   /api/admin/logout        로그아웃
-```
-
-**필수 인프라**:
-- 데이터베이스 (PostgreSQL 추천, Supabase / Neon / RDS)
-- 파일 스토리지 (S3 / Cloudinary / Supabase Storage) — 갤러리 이미지용
-- 결제 PG (토스페이먼츠 / 카카오페이) — 참가비 15,000원 실결제
-- 이메일 서비스 (AWS SES / SendGrid) — 신청 확인 안내
-- SMS 서비스 (Coolsms / Naver Cloud SMS) — 신청 완료 알림
-- 관리자 계정 다중 지원 + 권한 분리
-- 개인정보 암호화 (연락처·주소 필드)
-- Rate limiting, CSRF, XSS 방어
+- 결제 PG 연동 (토스페이먼츠/카카오페이) — 참가비는 현재 관리자가 수동으로 "입금확인" 처리
+- 이메일/SMS 알림 (신청 완료·공지 발송)
+- 개인정보 암호화, Rate limiting, CSRF/XSS 방어
+- 동시 신청에 대한 DB 트랜잭션 기반 원자적 정원 처리 (지금은 클라이언트 기준 근사치 마감)
 
 ---
 
@@ -654,45 +630,38 @@ Header height: 76px desktop / 64px mobile
 
 ## Files
 
-이 번들에 포함된 파일 목록:
-
-**HTML/CSS/JS 소스** (프로토타입 원본):
-- `index.html` — 메인 진입점 (헤더, 푸터, 라우팅 컨테이너)
-- `assets/css/style.css` — 전체 스타일시트 (약 2400줄, 모든 컴포넌트 스타일 + 반응형)
-- `assets/js/data.js` — 초기 데이터 시드 + LocalStorage 스토어 어댑터
+- `index.html` — 메인 진입점 (헤더, 푸터, 라우팅 컨테이너, Supabase JS CDN 로드)
+- `supabase_schema.sql` — Supabase 테이블·트리거·RPC 함수·Storage 버킷 정의 (SQL Editor에서 실행하는 원본)
+- `assets/css/style.css` — 전체 스타일시트 (모든 컴포넌트 스타일 + 반응형)
+- `assets/js/supabase-client.js` — Supabase Project URL/anon key 초기화
+- `assets/js/data.js` — 초기 기본값 + Supabase 연동 `RR_STORE`
 - `assets/js/pages.js` — 공개 페이지 렌더러 (7개 페이지 + 정책 3개)
 - `assets/js/admin.js` — 관리자 페이지 렌더러 (로그인 + 6개 모듈)
-- `assets/js/app.js` — 라우팅 + 인터랙션 + 상태 관리 (약 1000줄)
+- `assets/js/app.js` — 라우팅 + 인터랙션 + 상태 관리
+- `assets/img/`, `assets/logo-*.png`, `assets/course-map.png`, `assets/parking-map.png` — 로고·배경 이미지 원본 (실제 저장소에 포함되어 있음)
 
-**PROJECT_NOTES.md** — 프로젝트 개발 이력 및 상세 노트 (v1 → v10 변경 사항)
-
-**참고사항**:
-- 원본 프로토타입에는 로고 PNG, AI 생성 이미지 등 대용량 바이너리 자산이 포함되어 있으나, 이 핸드오프 번들에는 크기 관리를 위해 포함하지 않았습니다.
-- 실서비스 구현 시 위의 "Assets" 섹션의 파일들은 실제 브랜드 자산 또는 촬영본으로 교체해야 합니다.
-- 지도 이미지는 상용 지도 API 연동으로 교체를 권장합니다.
+**PROJECT_NOTES.md** — 프로젝트 개발 이력 및 최신 진행 상태 (v1 → v5 변경 사항, 남은 작업 목록)
 
 ---
 
-## 실서비스 구현 시 체크리스트
+## 실서비스 전환 체크리스트
 
-- [ ] 프론트엔드 프레임워크 선택 및 라우터 구성 (React Router / Next.js App Router / Vue Router 등)
-- [ ] 데이터베이스 스키마 설계 (applicants / notices / gallery / event / pace_groups 등)
-- [ ] REST/GraphQL API 개발 (위의 엔드포인트 목록 참조)
-- [ ] 관리자 인증 시스템 (JWT/세션, bcrypt 해싱, 다중 관리자 지원)
-- [ ] 참가자 비밀번호 해싱 저장 (신청확인 비밀번호도 반드시 해시)
-- [ ] 결제 연동 (참가비 실결제 + 환불 처리)
-- [ ] 파일 업로드 (갤러리 이미지 스토리지)
+- [ ] Vercel 배포 + 실제 도메인 연결
+- [ ] Supabase RLS 활성화 + 정책 설계 (현재 anon 키에 전체 공개 접근 상태)
+- [ ] 참가자 비밀번호 해싱 저장 (현재 평문)
+- [ ] 관리자 인증을 Supabase Auth 기반으로 교체 (현재 `admin/admin2026` 하드코딩), 다중 관리자 지원
+- [ ] 결제 연동 (참가비 실결제 + 환불 처리) — 현재는 관리자 수동 "입금확인"
 - [ ] 이메일/SMS 알림 발송
 - [ ] 개인정보 암호화 (연락처·주소 컬럼)
 - [ ] 관리자 감사 로그 (누가 언제 무엇을 수정했는지)
 - [ ] 정기 백업 · 모니터링
 - [ ] 개인정보처리방침 / 이용약관 / 환불정책 법무 검토
-- [ ] 참가신청 폼 실시간 유효성 검증 강화
-- [ ] 페이스 그룹 실시간 정원 소진 체크 (동시 신청 시 race condition 방지)
-- [ ] SEO 메타태그 · OG 이미지 · sitemap
+- [ ] 동시 신청 시 정원 초과 방지 (DB 트랜잭션 기반 원자적 처리 — 현재는 클라이언트 기준 근사치 마감)
 - [ ] 크로스 브라우저 테스트 (특히 backdrop-filter는 Safari에서 -webkit- prefix 필요)
 - [ ] 접근성 (aria 속성, 키보드 네비게이션, 스크린 리더)
 
+**이미 되어 있는 것**: Supabase 백엔드 연동, 갤러리·공지 이미지 업로드(자동 압축), 선착순 정원 마감, robots.txt/sitemap.xml/OG 메타태그.
+
 ---
 
-*본 핸드오프 문서는 2026-08-29 기준으로 작성되었으며, 프로토타입 v10 상태를 반영합니다.*
+*최신 상태 기준: 2026-08-31.*

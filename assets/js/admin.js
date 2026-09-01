@@ -26,6 +26,14 @@ function typeBadge(t) {
 }
 window.typeBadge = typeBadge;
 
+// Payment status badge helper
+function paymentBadge(status) {
+  const label = status === 'paid' ? '입금확인' : status === 'cancelled' ? '취소' : '입금대기';
+  const tone  = status === 'paid' ? 'green' : status === 'cancelled' ? 'red' : 'gray';
+  return `<span class="badge ${tone}">${label}</span>`;
+}
+window.paymentBadge = paymentBadge;
+
 // =====================================================================
 // Login
 // =====================================================================
@@ -45,10 +53,6 @@ function adminLogin() {
           <input type="password" id="admLoginPw" placeholder="비밀번호" autocomplete="current-password">
         </div>
         <button class="btn btn-primary btn-block btn-lg" id="admLoginBtn">로그인</button>
-
-        <div class="demo-hint">
-          데모용 계정 · ID <strong>admin</strong> / PW <strong>admin</strong>
-        </div>
       </div>
     </div>
   `;
@@ -95,15 +99,15 @@ function adminDashboard() {
     sum + (a.type === 'individual' ? 1 : (a.members || []).length), 0);
   const totalRevenue = totalMembers * (S.event.fee || 0);
 
+  const paceTotal = S.paceGroups.reduce((s, p) => s + p.applied, 0);
   const paceCards = S.paceGroups.map(p => {
-    const remain = Math.max(0, p.capacity - p.applied);
-    const pct = p.capacity ? Math.round(p.applied / p.capacity * 100) : 0;
+    const pct = paceTotal ? Math.round(p.applied / paceTotal * 100) : 0;
     return `
       <div class="pace-row">
         <div class="pace-name">${p.label}<span class="desc">${p.desc}</span></div>
         <div class="pace-bar"><div class="pace-bar-fill" style="width:${pct}%"></div></div>
-        <div class="pace-meta">${p.applied} / ${p.capacity}명 <span style="color:var(--text-3)">· 잔여 ${remain}</span></div>
-        <div class="pace-meta" style="text-align:right;font-weight:600;color:${pct>=90?'var(--danger)':'var(--kw-blue)'};">${pct}%</div>
+        <div class="pace-meta">신청 <strong>${p.applied}</strong>명</div>
+        <div class="pace-meta" style="text-align:right;color:var(--text-3);">전체의 ${pct}%</div>
       </div>
     `;
   }).join('');
@@ -125,7 +129,7 @@ function adminDashboard() {
       <div class="stat-card">
         <div class="stat-card-label">총 참가 인원</div>
         <div class="stat-card-value">${totalMembers}<span class="stat-card-unit">명</span></div>
-        <div class="stat-card-meta">모집 정원 ${S.paceGroups.reduce((s,p)=>s+p.capacity,0)}명</div>
+        <div class="stat-card-meta">모집 정원 ${S.event.maxCapacity}명</div>
       </div>
       <div class="stat-card">
         <div class="stat-card-label">누적 참가비</div>
@@ -164,7 +168,7 @@ function adminDashboard() {
                 <td>${typeBadge(a.type)}</td>
                 <td>${a.type==='individual' ? a.name : (a.teamName+' ('+a.leaderName+')')}</td>
                 <td>${(S.paceGroups.find(p=>p.id===a.pace)||{}).label || '-'}</td>
-                <td style="color:var(--text-3);">${RR_FMT.dateTime(a.createdAt)}</td>
+                <td style="color:var(--text-3);">${RR_FMT.dateTimeUTC(a.createdAt)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -219,6 +223,7 @@ function adminApplicants() {
               <th>연락처</th>
               <th>페이스</th>
               <th>인원</th>
+              <th>입금상태</th>
               <th>신청일</th>
               <th style="text-align:right;">관리</th>
             </tr>
@@ -236,18 +241,15 @@ function adminApplicants() {
 // Pace management
 // =====================================================================
 function adminPace() {
+  const total = RR_STORE.state.paceGroups.reduce((s, p) => s + p.applied, 0);
   const rows = RR_STORE.state.paceGroups.map(p => {
-    const remain = Math.max(0, p.capacity - p.applied);
-    const pct = p.capacity ? Math.round(p.applied / p.capacity * 100) : 0;
+    const pct = total ? Math.round(p.applied / total * 100) : 0;
     return `
       <div class="pace-row" data-pace-id="${p.id}">
         <div class="pace-name">${p.label}<span class="desc">${p.desc}</span></div>
         <div class="pace-bar"><div class="pace-bar-fill" style="width:${pct}%"></div></div>
-        <div class="pace-meta">신청 ${p.applied}명 · 잔여 <strong>${remain}</strong>명</div>
-        <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;">
-          <input type="number" class="pace-input" data-pace-cap="${p.id}" value="${p.capacity}" min="0">
-          <span style="font-size:12px;color:var(--text-3);">명</span>
-        </div>
+        <div class="pace-meta">신청 <strong>${p.applied}</strong>명</div>
+        <div class="pace-meta" style="text-align:right;color:var(--text-3);">전체 신청의 ${pct}%</div>
       </div>
     `;
   }).join('');
@@ -255,19 +257,17 @@ function adminPace() {
   const content = `
     <div class="admin-page-head">
       <div>
-        <h1>페이스 그룹 정원 관리</h1>
-        <p>페이스 그룹별 정원을 수정할 수 있습니다. 실제 신청 인원은 참가자 관리에서 관리됩니다.</p>
+        <h1>페이스 그룹별 신청 현황</h1>
+        <p>참가자가 자유롭게 선택하는 그룹별 신청 인원 통계입니다. 선착순 마감 기준은 정원이 아니라 <a href="#/admin/event" style="color:var(--kw-blue);">행사 정보</a>의 "모집 정원(전체)"입니다.</p>
       </div>
-      <button class="btn btn-primary btn-sm" id="admSavePace">변경사항 저장</button>
     </div>
 
     <div class="admin-panel">
-      <div class="admin-panel-head"><h3>페이스 그룹별 정원 · 신청 현황</h3></div>
+      <div class="admin-panel-head"><h3>페이스 그룹별 신청 인원</h3></div>
       <div class="admin-panel-body">
         ${rows}
         <div class="form-note" style="margin-top:24px;">
-          <strong>안내</strong> 각 그룹은 러닝 페이서 1명이 배정되며, 그룹당 30~40명 내외로 운영을 권장합니다.
-          정원을 축소할 때 이미 신청된 인원보다 작게 설정할 수 없습니다.
+          <strong>안내</strong> 그룹별 러닝 페이서 배정 등 현장 운영 계획을 세우는 용도의 참고 통계입니다.
         </div>
       </div>
     </div>
@@ -355,6 +355,15 @@ function adminNotice() {
             <label>내용<span class="req">*</span></label>
             <textarea id="admNoticeBody" rows="10" placeholder="공지 내용을 입력하세요."></textarea>
           </div>
+          <div class="field">
+            <label>첨부 이미지</label>
+            <input type="hidden" id="admNoticeImageUrl">
+            <div id="admNoticeImagePreviewWrap" class="hidden" style="margin-bottom:10px;">
+              <img id="admNoticeImagePreview" style="max-width:100%;max-height:180px;border-radius:var(--r-md);border:1px solid var(--border);">
+              <button type="button" class="btn btn-ghost btn-sm mt-8" id="admNoticeImageRemove">이미지 제거</button>
+            </div>
+            <input type="file" id="admNoticeImageFile" accept="image/*">
+          </div>
         </div>
         <div class="modal-foot">
           <button class="btn btn-ghost" data-close-modal>취소</button>
@@ -398,8 +407,7 @@ function adminGallery() {
           ${items}
         </div>
         <div class="form-note" style="margin-top:24px;">
-          <strong>안내</strong> 데모 환경에서는 업로드된 이미지가 브라우저(localStorage)에 임시 저장됩니다.
-          실제 운영 시에는 이미지 서버·CDN 업로드로 연동됩니다.
+          <strong>안내</strong> 업로드한 이미지는 Supabase Storage에 저장되며, 삭제 시 파일도 함께 제거됩니다.
         </div>
       </div>
     </div>
@@ -479,6 +487,27 @@ function adminEvent() {
             <input type="datetime-local" data-ef="applyClose" value="${e.applyClose}">
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="admin-panel">
+      <div class="admin-panel-head"><h3>입금 계좌 안내</h3></div>
+      <div class="admin-panel-body">
+        <div class="field-row">
+          <div class="field">
+            <label>은행명</label>
+            <input type="text" data-ef="bankName" value="${e.bankName || ''}" placeholder="예: 농협은행">
+          </div>
+          <div class="field">
+            <label>계좌번호</label>
+            <input type="text" data-ef="accountNumber" value="${e.accountNumber || ''}" placeholder="예: 123-4567-8901-23">
+          </div>
+        </div>
+        <div class="field">
+          <label>예금주</label>
+          <input type="text" data-ef="accountHolder" value="${e.accountHolder || ''}" placeholder="예: 케이워터운영관리(주)">
+        </div>
+        <div class="form-note">참가신청 완료 화면에 이 계좌 정보가 안내됩니다.</div>
       </div>
     </div>
   `;

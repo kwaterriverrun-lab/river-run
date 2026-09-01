@@ -254,7 +254,7 @@ function pageEvent() {
                 </div>
               </div>
             </div>
-            <p class="gift-foot">공식 티셔츠는 등록 시 수령 후, 행사 시작 전까지 착용해 주세요.</p>
+            <p class="gift-foot">참가 기념품(티셔츠 및 배번호, 메달) 디자인은 추후 공개 예정입니다.</p>
           </div>
         </div>
 
@@ -330,7 +330,8 @@ const APPLY_TYPE_MIN_REMAIN = { individual: 1, family: 7, group: 15 };
 
 function renderStep1Type() {
   const st = window.RR_APP.applyState;
-  const remaining = RR_STORE.state.event.maxCapacity - RR_STORE.getTotalApplied();
+  // totalApplied는 #/apply 진입 시 비동기로 미리 받아와 st에 캐시해둔 값 (renderStep1Type 자체는 동기 렌더 함수라서)
+  const remaining = RR_STORE.state.event.maxCapacity - (st.totalApplied ?? 0);
   const options = [
     { id: 'individual', title: '개인', desc: '1인 신청' },
     { id: 'family',     title: '가족', desc: '3인 이상 가족' },
@@ -368,14 +369,13 @@ function renderStep2Agree() {
   const st = window.RR_APP.applyState;
   const agreements = [
     { id:'a1', title:'개인정보 수집·이용 동의',       body:`<p><strong>1. 수집 항목</strong> : 성명, 생년월일, 연락처, 티셔츠 사이즈, 이메일 주소 등</p><p><strong>2. 수집 목적</strong></p><ul><li>행사 참가신청 및 참가자 확인</li><li>참가자 안내 (일정, 공지사항, 주의사항 전달 등)</li><li>기념품 지급 및 참가 관리 등</li></ul><p><strong>3. 보유 및 이용기간</strong> : 행사 종료 후 1년간 보관 후 파기 (단, 관계법령에 따라 보존이 필요한 경우 해당 기간까지 보관)</p>` },
-    { id:'a2', title:'개인정보 제3자 제공 동의',     body:`<p><strong>1. 위탁 제공 개인정보</strong> : 성명, 생년월일, 주소, 연락처, 티셔츠 사이즈, 이메일 주소 등</p><p><strong>2. 위탁처리기관 및 위탁업무 내용</strong></p><ul><li>위탁처리기관 : ㈜러닝브레이커</li><li>위탁업무 내용 : 개인정보 수집 및 변경, 참가시스템 관리/운영 유지보수</li></ul>` },
     { id:'a3', title:'초상권 이용 동의',              body:`<p>리버런(이하 "행사") 참여와 관련하여, 본인은 행사 주최사 및 주관사가 행사 진행 중 촬영한 본인의 사진 및 영상 등을 이용·활용하는 것에 동의합니다.</p><p><strong>1. 수집 및 이용 주체</strong> : 한국수자원공사, 케이워터운영관리㈜</p><p><strong>2. 수집 및 이용 목적</strong></p><ul><li>행사 기록</li><li>행사 및 관련 사업의 비상업적 홍보 (온라인 및 오프라인)</li></ul><p><strong>3. 이용기간</strong> : 주최·주관사의 홍보 목적을 위해 지속적으로 활용될 수 있음</p>` },
     { id:'a4', title:'참가자 준수사항 동의',          body:`<p><strong>1. 건강상태 확인</strong> — 10K 코스를 완주할 수 있는 건강 상태임을 스스로 확인해야 하며, 이상이 있는 경우 주최 측에 사전 고지. 행사 중 몸에 이상이 느껴질 경우 즉시 멈추고 도움을 요청해야 합니다.</p><p><strong>2. 안전수칙 준수</strong> — 주최 측, 진행요원, 의료요원의 지시에 따라야 하며, 무리한 경쟁·고의적인 충돌·위험한 행동을 금지합니다.</p><p><strong>3. 참가자 티셔츠 착용</strong> — 지급된 티셔츠는 의무적으로 착용하며, 러닝화 등 안전한 장비를 착용합니다.</p><p><strong>4. 기상 상황에 따른 운영</strong> — 기상·안전상의 이유로 코스가 변경·중단될 수 있으며, 참가자는 이에 협조합니다.</p><p><strong>5. 개인물품 책임</strong> — 귀중품은 참가자 본인이 책임지고 보관하며, 분실·도난 시 책임을 지지 않습니다.</p>` }
   ];
   const allAgreed = agreements.every(a => st.agrees && st.agrees[a.id]);
   return `
     <h2 class="form-title">약관 동의</h2>
-    <p class="form-lead">참가신청을 위해 아래 4가지 항목에 모두 동의해 주세요.</p>
+    <p class="form-lead">참가신청을 위해 아래 ${agreements.length}가지 항목에 모두 동의해 주세요.</p>
 
     <label class="agree-all">
       <input type="checkbox" id="agreeAll" ${allAgreed ? 'checked' : ''}>
@@ -573,24 +573,49 @@ function renderGroupForm() {
 function renderStep4Done() {
   const r = window.RR_APP.applyState.result || {};
   const name = r.type === 'individual' ? r.name : (r.teamName + ' (' + r.leaderName + ')');
+  const countRow = r.type === 'individual'
+    ? `<div class="dl-row"><div class="dl-term">티셔츠</div><div class="dl-desc">${r.size || '-'}</div></div>`
+    : `<div class="dl-row"><div class="dl-term">참가 인원</div><div class="dl-desc">${(r.members || []).length}명</div></div>`;
   return `
     <div class="complete-panel">
       <div class="complete-mark">${Icon.check}</div>
       <h2>참가 신청이 완료되었습니다</h2>
+      <p>입력하신 이름·연락처·비밀번호로 접수 확인 페이지에서 언제든 신청 내역을 다시 확인·수정하실 수 있습니다.</p>
 
       <div class="complete-summary">
+        <div class="complete-summary-name">${name || '-'}</div>
         <div class="dl">
-          <div class="dl-row"><div class="dl-term">접수번호</div><div class="dl-desc"><strong>${r.id || '-'}</strong></div></div>
           <div class="dl-row"><div class="dl-term">신청 유형</div><div class="dl-desc">${typeLabel(r.type)}</div></div>
-          <div class="dl-row"><div class="dl-term">신청자</div><div class="dl-desc">${name || '-'}</div></div>
+          <div class="dl-row"><div class="dl-term">연락처</div><div class="dl-desc">${RR_FMT.phoneInput(r.phone || '')}</div></div>
           <div class="dl-row"><div class="dl-term">페이스</div><div class="dl-desc">${RR_FMT.pace(r.pace)}</div></div>
+          ${countRow}
         </div>
+        <div class="complete-summary-time">${RR_FMT.dateTimeUTC(r.createdAt)} 접수</div>
       </div>
+
+      ${renderDepositNotice()}
 
       <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
         <a href="#/lookup" class="btn btn-outline">접수 확인하기</a>
         <a href="#/" class="btn btn-primary">홈으로</a>
       </div>
+    </div>
+  `;
+}
+
+function renderDepositNotice() {
+  const ev = RR_STORE.state.event;
+  if (!ev.bankName || !ev.accountNumber) return '';
+  return `
+    <div class="deposit-card">
+      <div class="deposit-card-label">참가비 입금 안내</div>
+      <div class="deposit-amount">${RR_FMT.won(ev.fee)}</div>
+      <div class="deposit-account">
+        <span class="deposit-bank">${ev.bankName}</span>
+        <span class="deposit-number">${ev.accountNumber}</span>
+        ${ev.accountHolder ? `<span class="deposit-holder">예금주 ${ev.accountHolder}</span>` : ''}
+      </div>
+      <p class="deposit-note">입금자명은 <strong>신청자명과 동일하게</strong> 해주세요. 입금 확인 전까지는 임시 접수 상태이며, 관리자 확인 후 최종 확정됩니다.</p>
     </div>
   `;
 }
@@ -643,22 +668,26 @@ function renderLookupConfirm(record) {
   const displayName = record.type === 'individual'
     ? record.name
     : record.teamName + ' (' + record.leaderName + ')';
+  const address = record.type === 'individual'
+    ? record.address
+    : (record.members && record.members[0] ? record.members[0].address : '');
   const editOpen = isBeforeApplyDeadline();
   const ev = RR_STORE.state.event;
   return `
     <div class="lookup-result">
       <h3>참가신청 확인 완료</h3>
       <div class="dl">
-        <div class="dl-row"><div class="dl-term">접수번호</div><div class="dl-desc"><strong>${record.id}</strong></div></div>
         <div class="dl-row"><div class="dl-term">신청 유형</div><div class="dl-desc">${typeLabel(record.type)}</div></div>
         <div class="dl-row"><div class="dl-term">신청자</div><div class="dl-desc">${displayName}</div></div>
-        <div class="dl-row"><div class="dl-term">연락처</div><div class="dl-desc">${record.phone}</div></div>
+        <div class="dl-row"><div class="dl-term">연락처</div><div class="dl-desc">${RR_FMT.phoneInput(record.phone)}</div></div>
+        <div class="dl-row"><div class="dl-term">주소</div><div class="dl-desc">${address || '-'}</div></div>
         <div class="dl-row"><div class="dl-term">페이스</div><div class="dl-desc">${RR_FMT.pace(record.pace)}</div></div>
         ${record.type === 'individual'
           ? `<div class="dl-row"><div class="dl-term">티셔츠</div><div class="dl-desc">${record.size || '-'}</div></div>`
           : `<div class="dl-row"><div class="dl-term">참가 인원</div><div class="dl-desc">${(record.members || []).length}명</div></div>`
         }
-        <div class="dl-row"><div class="dl-term">신청일시</div><div class="dl-desc">${RR_FMT.dateTime(record.createdAt)}</div></div>
+        <div class="dl-row"><div class="dl-term">입금상태</div><div class="dl-desc">${window.paymentBadge(record.paymentStatus)}</div></div>
+        <div class="dl-row"><div class="dl-term">신청일시</div><div class="dl-desc">${RR_FMT.dateTimeUTC(record.createdAt)}</div></div>
       </div>
       <div class="lookup-result-actions">
         <button class="btn btn-outline btn-block" id="lookupEditBtn" ${editOpen ? '' : 'disabled'}>참가 정보 수정</button>
@@ -692,7 +721,7 @@ function renderLookupEditIndividual(record) {
   return `
     <div class="form-panel" id="lookupEditPanel">
       <h2 class="form-title">참가 정보 수정</h2>
-      <p class="form-lead">* 표시는 필수 입력 항목입니다. (접수번호 ${record.id})</p>
+      <p class="form-lead">* 표시는 필수 입력 항목입니다.</p>
 
       <div class="field-row">
         <div class="field">
@@ -702,7 +731,7 @@ function renderLookupEditIndividual(record) {
         </div>
         <div class="field">
           <label>생년월일<span class="req">*</span></label>
-          <input type="text" data-ef="birth" value="${record.birth || ''}" placeholder="YYYY-MM-DD">
+          <input type="text" data-ef="birth" value="${RR_FMT.birthInput(record.birth || '')}" placeholder="YYYY-MM-DD">
           <div class="field-err">생년월일을 입력해 주세요.</div>
         </div>
       </div>
@@ -710,7 +739,7 @@ function renderLookupEditIndividual(record) {
       <div class="field-row">
         <div class="field">
           <label>연락처<span class="req">*</span></label>
-          <input type="tel" data-ef="phone" value="${record.phone || ''}">
+          <input type="tel" data-ef="phone" value="${RR_FMT.phoneInput(record.phone || '')}">
           <div class="field-err">연락처를 입력해 주세요.</div>
         </div>
         <div class="field">
@@ -769,7 +798,7 @@ function renderLookupEditGroup(record) {
   return `
     <div class="form-panel" id="lookupEditPanel">
       <h2 class="form-title">${label} 참가 정보 수정</h2>
-      <p class="form-lead">* 표시는 필수 입력 항목입니다. (접수번호 ${record.id})</p>
+      <p class="form-lead">* 표시는 필수 입력 항목입니다.</p>
 
       <div class="field-row">
         <div class="field">
@@ -928,13 +957,13 @@ function pagePrivacy() {
           </ul>
 
           <h3 class="policy-h">제5조 (개인정보 처리의 위탁)</h3>
-          <p>회사는 서비스 향상을 위해 아래와 같이 개인정보 처리 업무를 위탁하고 있습니다.</p>
+          <p>회사는 안정적인 서비스 제공을 위해 아래와 같이 개인정보 처리 업무를 위탁하고 있습니다. 위탁계약 체결 시 관계 법령에 따라 수탁자가 개인정보를 안전하게 처리하도록 필요한 사항을 규정하고 있습니다.</p>
           <div class="policy-table">
             <div class="policy-tr">
-              <div class="policy-th">수탁업체</div><div class="policy-td">㈜러닝브레이커</div>
+              <div class="policy-th">수탁업체</div><div class="policy-td">Supabase, Inc.</div>
             </div>
             <div class="policy-tr">
-              <div class="policy-th">위탁 업무</div><div class="policy-td">참가시스템 운영·유지보수, 개인정보 수집 및 변경</div>
+              <div class="policy-th">위탁 업무</div><div class="policy-td">참가신청 데이터베이스 서버 보관·운영</div>
             </div>
           </div>
 
@@ -957,7 +986,7 @@ function pagePrivacy() {
             <div class="policy-tr"><div class="policy-th">연락처</div><div class="policy-td">031-999-7813</div></div>
           </div>
 
-          <p class="policy-effective">본 방침은 <strong>2026년 8월 28일</strong>부터 시행됩니다.</p>
+          <p class="policy-effective">본 방침은 <strong>2026년 8월 31일</strong>부터 시행됩니다.</p>
         </div>
       </div>
     </section>
@@ -988,7 +1017,7 @@ function pageTerms() {
           <h3 class="policy-h">제3조 (약관의 효력 및 변경)</h3>
           <ol class="policy-ol">
             <li>본 약관은 사이트 화면에 게시함으로써 효력이 발생합니다.</li>
-            <li>회사는 필요한 경우 관련 법령을 위배하지 않는 범위에서 본 약관을 변경할 수 있으며, 변경 시 사이트에 공지합니다.</li>
+            <li>회사는 필요한 경우 관련 법령을 위배하지 않는 범위에서 본 약관을 변경할 수 있으며, 변경 시 적용일자 및 개정사유를 명시하여 적용일자 7일 전부터 사이트에 공지합니다.</li>
             <li>이용자가 변경된 약관에 동의하지 않는 경우 참가신청을 취소할 수 있습니다.</li>
           </ol>
 
@@ -1027,7 +1056,7 @@ function pageTerms() {
           <h3 class="policy-h">제8조 (분쟁의 해결)</h3>
           <p>본 약관과 관련하여 회사와 이용자 간에 발생한 분쟁은 상호 협의하여 해결하며, 협의가 이루어지지 않을 경우 관련 법령 및 관할 법원의 판결에 따릅니다.</p>
 
-          <p class="policy-effective">본 약관은 <strong>2026년 8월 28일</strong>부터 시행됩니다.</p>
+          <p class="policy-effective">본 약관은 <strong>2026년 8월 31일</strong>부터 시행됩니다.</p>
         </div>
       </div>
     </section>
@@ -1088,7 +1117,7 @@ function pageRefund() {
             <li>환불은 운영사무국(031-999-7813)으로 전화 또는 이메일 신청 후 처리됩니다.</li>
             <li>환불 신청 시 아래 정보를 확인합니다.
               <ul>
-                <li>접수번호(RR-XXXXXX) 또는 성명·연락처</li>
+                <li>신청자 성명·연락처</li>
                 <li>환불 계좌 정보 (예금주·은행명·계좌번호)</li>
               </ul>
             </li>
@@ -1101,7 +1130,7 @@ function pageRefund() {
             <div class="policy-tr"><div class="policy-th">운영시간</div><div class="policy-td">평일 09:00 ~ 18:00 (주말·공휴일 제외)</div></div>
           </div>
 
-          <p class="policy-effective">본 정책은 <strong>2026년 8월 28일</strong>부터 시행됩니다.</p>
+          <p class="policy-effective">본 정책은 <strong>2026년 8월 31일</strong>부터 시행됩니다.</p>
         </div>
       </div>
     </section>
