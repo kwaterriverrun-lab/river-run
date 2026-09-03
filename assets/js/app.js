@@ -43,6 +43,7 @@
     '/admin':            () => RR_ADMIN.adminDashboard(),
     '/admin/dashboard':  () => RR_ADMIN.adminDashboard(),
     '/admin/applicants': () => RR_ADMIN.adminApplicants(),
+    '/admin/cancelled':  () => RR_ADMIN.adminCancelled(),
     '/admin/notice':     () => RR_ADMIN.adminNotice(),
     '/admin/gallery':    () => RR_ADMIN.adminGallery(),
     '/admin/event':      () => RR_ADMIN.adminEvent(),
@@ -160,11 +161,15 @@
     if (tabKey === 'dashboard' || tabKey === 'applicants' || tabKey === '') {
       await RR_STORE.loadApplicantsFromSupabase();
     }
+    if (tabKey === 'cancelled') {
+      await RR_STORE.loadCancelledApplicantsFromSupabase();
+    }
     const renderFn = ADMIN_ROUTES[path] || ADMIN_ROUTES['/admin/dashboard'];
     document.getElementById('view').innerHTML = renderFn();
     bindAdminCommon();
     if (tabKey === 'dashboard' || tabKey === '') bindAdminDashboard();
     else if (tabKey === 'applicants') bindAdminApplicants();
+    else if (tabKey === 'cancelled') bindAdminCancelled();
     else if (tabKey === 'notice') bindAdminNotice();
     else if (tabKey === 'gallery') bindAdminGallery();
     else if (tabKey === 'event') bindAdminEvent();
@@ -527,6 +532,24 @@
     if (editBtn) editBtn.addEventListener('click', () => {
       document.getElementById('lookupContainer').innerHTML = RR_HELPERS.renderLookupEditForm(record);
       bindLookupEditForm(record);
+    });
+    const cancelBtn = document.getElementById('lookupCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', async () => {
+      if (!confirm('참가 신청을 취소하시겠습니까? 취소 후에는 신청 내역을 다시 확인할 수 없습니다.')) return;
+      cancelBtn.disabled = true;
+      try {
+        await RR_STORE.cancelOwnApplicant(record.id, record.password);
+        document.getElementById('lookupContainer').innerHTML = `
+          <div class="lookup-result">
+            <h3>참가 신청이 취소되었습니다</h3>
+            <p style="color:var(--text-2);margin-top:8px;">그동안 관심 가져주셔서 감사합니다.</p>
+          </div>
+        `;
+      } catch (e) {
+        console.error(e);
+        toast('취소에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        cancelBtn.disabled = false;
+      }
     });
   }
 
@@ -950,7 +973,9 @@
             <td>${window.paymentBadge(a.paymentStatus)}</td>
             <td style="color:var(--text-3);">${RR_FMT.dateTimeUTC(a.createdAt)}</td>
             <td class="actions">
-              ${a.paymentStatus !== 'paid' ? `<button class="btn btn-outline btn-sm" data-app-pay="${a.id}">입금확인</button>` : ''}
+              ${a.paymentStatus === 'paid'
+                ? `<button class="btn btn-ghost btn-sm" data-app-unpay="${a.id}" style="color:var(--text-3);">되돌리기</button>`
+                : `<button class="btn btn-outline btn-sm" data-app-pay="${a.id}">입금확인</button>`}
               <button class="btn btn-ghost btn-sm" data-app-view="${a.id}">상세</button>
               <button class="btn btn-ghost btn-sm" data-app-edit="${a.id}">수정</button>
               <button class="btn btn-ghost btn-sm" data-app-del="${a.id}">삭제</button>
@@ -987,6 +1012,19 @@
           try {
             await RR_STORE.updateApplicantInSupabase(b.dataset.appPay, { paymentStatus: 'paid' });
             toast('입금 확인 처리되었습니다.');
+            draw();
+          } catch (e) {
+            console.error(e);
+            toast('처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+          }
+        });
+      });
+      tbody.querySelectorAll('[data-app-unpay]').forEach(b => {
+        b.addEventListener('click', async () => {
+          if (!confirm('입금 확인을 취소하고 입금대기 상태로 되돌리시겠습니까?')) return;
+          try {
+            await RR_STORE.updateApplicantInSupabase(b.dataset.appUnpay, { paymentStatus: 'pending' });
+            toast('입금대기 상태로 되돌렸습니다.');
             draw();
           } catch (e) {
             console.error(e);
@@ -1168,6 +1206,50 @@
       URL.revokeObjectURL(url);
       toast('CSV 파일이 다운로드되었습니다.');
     }
+
+    draw();
+  }
+
+  // ---- Cancelled applicants ----
+  function bindAdminCancelled() {
+    const state = { search: '' };
+    const tbody = document.getElementById('admCancelledTbody');
+    const emptyEl = document.getElementById('admCancelledEmpty');
+
+    function draw() {
+      const q = state.search.trim().toLowerCase();
+      const list = (RR_STORE.state.cancelledApplicants || []).filter(a => {
+        if (!q) return true;
+        const name = a.type === 'individual' ? a.name : (a.teamName + ' ' + a.leaderName);
+        const qDigits = q.replace(/\D/g, '');
+        const phoneMatch = qDigits.length > 0 && (a.phone || '').replace(/\D/g, '').includes(qDigits);
+        return (name || '').toLowerCase().includes(q)
+            || phoneMatch
+            || (a.id || '').toLowerCase().includes(q);
+      });
+      if (!list.length) {
+        tbody.innerHTML = ''; emptyEl.classList.remove('hidden');
+        return;
+      }
+      emptyEl.classList.add('hidden');
+      tbody.innerHTML = list.map(a => {
+        const isI = a.type === 'individual';
+        const name = isI ? a.name : `${a.teamName} (${a.leaderName})`;
+        const count = isI ? 1 : (a.members || []).length;
+        return `
+          <tr>
+            <td><span style="font-family:monospace;font-size:12.5px;">${a.id}</span></td>
+            <td>${window.typeBadge(a.type)}</td>
+            <td>${name}</td>
+            <td>${RR_FMT.phoneInput(a.phone)}</td>
+            <td>${count}명</td>
+            <td>${RR_FMT.dateTimeUTC(a.cancelledAt)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('admCancelledSearchInp').addEventListener('input', (e) => { state.search = e.target.value; draw(); });
 
     draw();
   }

@@ -817,6 +817,10 @@ function renderLookupConfirm(record) {
       <div class="lookup-result-actions">
         <button class="btn btn-outline btn-block" id="lookupEditBtn" ${editOpen ? '' : 'disabled'}>참가 정보 수정</button>
         ${editOpen ? '' : `<div class="field-help" style="text-align:center;margin-top:8px;">${editClosedReason}</div>`}
+        ${record.paymentStatus === 'pending'
+          ? `<button class="btn btn-ghost btn-block" id="lookupCancelBtn" style="margin-top:8px;color:var(--danger);">참가 취소</button>`
+          : `<div class="field-help" style="text-align:center;margin-top:8px;">입금 확인이 완료된 신청은 환불 절차가 필요하여 직접 취소할 수 없습니다. 취소·환불은 운영사무국(031-999-7813)으로 문의해 주세요.</div>`
+        }
       </div>
     </div>
   `;

@@ -5,7 +5,7 @@
 한국수자원공사(K-water)가 주최하는 **2026 River Run '세종'** 러닝 대회 참가신청 홈페이지입니다.
 2026년 10월 17일(토) 세종보 홍보관 일원에서 개최되는 10km 러닝 이벤트의 온라인 접수·안내·관리 시스템 전체 UI가 포함되어 있습니다.
 
-**공개 사이트**(7개 페이지) + **관리자 대시보드**(5개 모듈) + **정책 페이지**(3종) = 총 15개 화면.
+**공개 사이트**(7개 페이지) + **관리자 대시보드**(6개 모듈) + **정책 페이지**(3종) = 총 16개 화면.
 
 - **주최**: K-water 한국수자원공사
 - **주관**: 케이워터운영관리(주) 친수사업부
@@ -292,7 +292,7 @@
 
 ---
 
-### 관리자 사이트 (5개 모듈)
+### 관리자 사이트 (6개 모듈)
 
 관리자 접근: 푸터 [관리자] 링크 → 로그인 페이지
 로그인 세션은 `sessionStorage['rr_admin_session'] = '1'`
@@ -331,14 +331,21 @@
 
 **입금상태 배지**: 대기(`gray`) · 확인(`green`) · 취소(`red`)
 
-#### Admin 3 · 공지사항 (`/admin/notice`)
+#### Admin 3 · 취소 내역 (`/admin/cancelled`)
+
+- 참가자 본인이 "접수 확인" 화면에서 직접 취소한 신청의 백업 목록 (읽기 전용, 별도 수정·복원 기능 없음)
+- 본인 취소는 입금상태가 **입금대기**일 때만 가능 — 입금확인 완료 건은 환불 절차가 필요해 운영사무국 문의로 안내되며 UI에서 취소 불가
+- 취소 시 `applicants` 행을 삭제하기 직전 스냅샷을 `applicants_cancelled` 테이블에 그대로 보관 (취소한 본인은 이후 조회 불가, 관리자만 확인 가능)
+- admin-table: 접수번호 · 유형 배지 · 신청자 · 연락처 · 페이스 · 취소일시
+
+#### Admin 4 · 공지사항 (`/admin/notice`)
 
 - admin-table: 구분 배지 · 제목 · 등록일 · [수정][삭제]
 - 상단 [+ 새 공지 작성] 버튼
 - 작성/수정 모달: 구분(select: 중요/안내/이벤트) · 등록일(date) · 상단 고정(checkbox) · 제목 · 내용(textarea 10 rows) · **첨부 이미지**(업로드 시 미리보기 + 제거 가능)
 - 이미지 교체·제거·공지 삭제 시 Storage의 이전 파일도 함께 정리됨 (고아 파일 안 남음)
 
-#### Admin 4 · 갤러리 (`/admin/gallery`)
+#### Admin 5 · 갤러리 (`/admin/gallery`)
 
 - 4열 그리드 (모바일 2열)
 - 좌상단 업로드 버튼 (dashed border + 플러스 아이콘, `<input type="file" multiple>`)
@@ -346,7 +353,7 @@
 - 업로드 시 클라이언트에서 자동으로 리사이즈·압축(최대 1600px, JPEG) 후 Supabase Storage(`gallery` 버킷)에 저장, DB에는 공개 URL만 저장
 - 삭제 시 DB 행과 Storage 파일이 함께 삭제됨
 
-#### Admin 5 · 행사 정보 (`/admin/event`)
+#### Admin 6 · 행사 정보 (`/admin/event`)
 
 - 기본 정보 블록: 대회명 · 대회 일시(datetime-local) · 종목·거리 · 행사 장소 · 참가비(number) · 주최 · 주관 · **모집 정원(전체)**
 - 접수 기간 블록: 접수 시작 · 접수 마감 (datetime-local)
@@ -632,7 +639,7 @@ Header height: 76px desktop / 64px mobile
 - `assets/js/supabase-client.js` — Supabase Project URL/anon key 초기화
 - `assets/js/data.js` — 초기 기본값 + Supabase 연동 `RR_STORE`
 - `assets/js/pages.js` — 공개 페이지 렌더러 (7개 페이지 + 정책 3개)
-- `assets/js/admin.js` — 관리자 페이지 렌더러 (로그인 + 5개 모듈)
+- `assets/js/admin.js` — 관리자 페이지 렌더러 (로그인 + 6개 모듈)
 - `assets/js/app.js` — 라우팅 + 인터랙션 + 상태 관리
 - `assets/img/`, `assets/logo-*.png`, `assets/course-map.png`, `assets/parking-map.png` — 로고·배경 이미지 원본 (실제 저장소에 포함되어 있음)
 

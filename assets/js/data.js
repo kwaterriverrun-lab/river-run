@@ -141,7 +141,9 @@ const DEFAULTS = {
         { name: '김영희',   birth: '1987-08-25', phone: '010-6789-0124', gender: 'female', size: 'M', address: '대전시 서구 둔산동 100' },
         { name: '홍민서',   birth: '2013-11-03', phone: '010-6789-0125', gender: 'female', size: 'S', address: '대전시 서구 둔산동 100' }
       ] }
-  ]
+  ],
+
+  cancelledApplicants: []
 };
 
 // ==================================================================
@@ -334,6 +336,12 @@ window.RR_STORE = {
     if (error) { console.error('applicants load failed', error); return; }
     this.state.applicants = data.map(a => this._mapApplicantFromDb(a));
   },
+  // 관리자 화면 전용 — 참가자 본인이 취소한 신청 백업 목록
+  async loadCancelledApplicantsFromSupabase() {
+    const { data, error } = await window.RR_SUPABASE.from('applicants_cancelled').select('*').order('cancelled_at', { ascending: false });
+    if (error) { console.error('applicants_cancelled load failed', error); return; }
+    this.state.cancelledApplicants = data.map(a => ({ ...this._mapApplicantFromDb(a), cancelledAt: a.cancelled_at }));
+  },
   async createApplicantInSupabase(record) {
     this._normalizeApplicantPayload(record);
     const payload = {
@@ -366,6 +374,27 @@ window.RR_STORE = {
     if (!data || !data.length) throw new Error('INVALID_CREDENTIALS');
     await this.loadPaceGroupsFromSupabase();
     return this._mapApplicantFromDb(data[0]);
+  },
+  // 참가자 본인 취소 — 입금대기 상태일 때만 가능 (입금확인 후에는 환불 절차가 필요해 운영사무국 문의로 안내).
+  // 삭제 전에 applicants_cancelled에 그대로 백업 — 신청자 본인은 이후 조회 불가하지만 관리자는 확인 가능.
+  async cancelOwnApplicant(id, password) {
+    const { data: rows, error: fetchErr } = await window.RR_SUPABASE
+      .from('applicants').select('*').eq('id', id).eq('password', password);
+    if (fetchErr) throw fetchErr;
+    if (!rows || !rows.length) throw new Error('INVALID_CREDENTIALS');
+    const record = rows[0];
+    if (record.payment_status !== 'pending') throw new Error('CANNOT_CANCEL_PAID');
+
+    const { error: insErr } = await window.RR_SUPABASE
+      .from('applicants_cancelled').insert({ ...record, cancelled_at: new Date().toISOString() });
+    if (insErr) throw insErr;
+
+    const { error: delErr } = await window.RR_SUPABASE
+      .from('applicants').delete().eq('id', id).eq('password', password);
+    if (delErr) throw delErr;
+
+    this.state.applicants = this.state.applicants.filter(a => a.id !== id);
+    await this.loadPaceGroupsFromSupabase();
   },
   // 관리자 수정/삭제 — 비밀번호 확인 불필요
   async updateApplicantInSupabase(id, patch) {

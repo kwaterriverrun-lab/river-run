@@ -106,6 +106,31 @@ create table applicants (
 
 create index idx_applicants_phone on applicants (regexp_replace(phone, '\D', '', 'g'));
 
+-- ------------------------------------------------------------
+-- 5-1. applicants_cancelled (참가자 본인이 취소한 신청의 백업 — 입금대기 상태일 때만 취소 가능)
+-- applicants에서 삭제되기 직전 스냅샷을 그대로 보관. 취소한 본인은 더 이상 조회할 수 없지만
+-- 관리자는 이 테이블에서 이후에도 확인 가능. CHECK 제약은 두지 않아 원본 스키마가 바뀌어도 백업에 영향 없음.
+-- ------------------------------------------------------------
+create table applicants_cancelled (
+  id text primary key,
+  type text not null,
+  name text,
+  birth text,
+  address text,
+  gender text,
+  size text,
+  team_name text,
+  leader_name text,
+  members jsonb,
+  phone text,
+  email text,
+  pace text,
+  password text,
+  payment_status text,
+  created_at timestamp,
+  cancelled_at timestamp not null default now()
+);
+
 -- pace_groups.applied 자동 재계산 (개인=1명, 단체·가족=members 배열 길이)
 -- 기존 프론트 코드의 syncPaceApplied()는 family를 집계에서 빠뜨리는 버그가 있었는데 여기선 수정함
 create or replace function recalc_pace_applied() returns trigger

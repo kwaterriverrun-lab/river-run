@@ -5,12 +5,14 @@ const AdminIcon = {
   users:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   notice:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
   gallery:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
-  event:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+  event:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  cancelled: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
 };
 
 const ADMIN_MENU = [
   { key: 'dashboard', label: '대시보드',   icon: AdminIcon.dashboard },
   { key: 'applicants', label: '참가자 관리', icon: AdminIcon.users },
+  { key: 'cancelled',  label: '참가 취소 내역',   icon: AdminIcon.cancelled },
   { key: 'notice',     label: '공지사항',    icon: AdminIcon.notice },
   { key: 'gallery',    label: '갤러리',      icon: AdminIcon.gallery },
   { key: 'event',      label: '행사 정보',   icon: AdminIcon.event }
@@ -241,7 +243,44 @@ function adminApplicants() {
 }
 
 // =====================================================================
-// Pace management
+// Cancelled applicants (참가자 본인 취소 백업 조회 — 읽기 전용)
+// =====================================================================
+function adminCancelled() {
+  const content = `
+    <div class="admin-page-head">
+      <div>
+        <h1>참가 취소 내역</h1>
+        <p>참가자가 직접 취소한 신청 백업입니다. 취소한 본인은 더 이상 조회할 수 없으며, 이 목록에서만 확인할 수 있습니다.</p>
+      </div>
+    </div>
+
+    <div class="admin-panel">
+      <div class="admin-panel-head">
+        <div class="toolbar" style="flex:1;">
+          <input type="text" class="toolbar-search" id="admCancelledSearchInp" placeholder="이름, 연락처, 접수번호로 검색">
+        </div>
+      </div>
+      <div class="admin-panel-body p0" style="overflow-x:auto;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>접수번호</th>
+              <th>유형</th>
+              <th>신청자</th>
+              <th>연락처</th>
+              <th>인원</th>
+              <th>취소일시</th>
+            </tr>
+          </thead>
+          <tbody id="admCancelledTbody"></tbody>
+        </table>
+        <div id="admCancelledEmpty" class="empty hidden">검색 결과가 없습니다.</div>
+      </div>
+    </div>
+  `;
+  return adminShell('cancelled', content);
+}
+
 // =====================================================================
 // Notice management
 // =====================================================================
@@ -481,4 +520,4 @@ function adminEvent() {
   return adminShell('event', content);
 }
 
-window.RR_ADMIN = { adminLogin, adminDashboard, adminApplicants, adminNotice, adminGallery, adminEvent };
+window.RR_ADMIN = { adminLogin, adminDashboard, adminApplicants, adminCancelled, adminNotice, adminGallery, adminEvent };
