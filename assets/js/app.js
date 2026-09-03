@@ -43,7 +43,6 @@
     '/admin':            () => RR_ADMIN.adminDashboard(),
     '/admin/dashboard':  () => RR_ADMIN.adminDashboard(),
     '/admin/applicants': () => RR_ADMIN.adminApplicants(),
-    '/admin/pace':       () => RR_ADMIN.adminPace(),
     '/admin/notice':     () => RR_ADMIN.adminNotice(),
     '/admin/gallery':    () => RR_ADMIN.adminGallery(),
     '/admin/event':      () => RR_ADMIN.adminEvent(),
@@ -58,7 +57,7 @@
     return {
       step: 1, type: null,
       agrees: {}, members: [{}],
-      selectedPace: null, selectedSize: null, selectedGender: null,
+      selectedPace: null,
       result: null, totalApplied: null
     };
   }
@@ -334,16 +333,6 @@
     // ---- Step 3: 정보 입력 ----
     bindAutoFormat(document.querySelector('[data-f="birth"]'), RR_FMT.birthInput);
     bindAutoFormat(document.querySelector('[data-f="phone"]'), RR_FMT.phoneInput);
-    document.querySelectorAll('[data-group]').forEach(group => {
-      group.querySelectorAll('.size-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          group.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          if (group.dataset.group === 'size')   st.selectedSize   = btn.dataset.val;
-          if (group.dataset.group === 'gender') st.selectedGender = btn.dataset.val;
-        });
-      });
-    });
     document.querySelectorAll('input[name="pace"]').forEach(r => {
       r.addEventListener('change', () => {
         st.selectedPace = r.value;
@@ -378,10 +367,7 @@
           <td>
             <select data-mf="size" data-mi="${i}">
               <option value="">-</option>
-              <option value="S" ${m.size==='S'?'selected':''}>S</option>
-              <option value="M" ${m.size==='M'?'selected':''}>M</option>
-              <option value="L" ${m.size==='L'?'selected':''}>L</option>
-              <option value="XL" ${m.size==='XL'?'selected':''}>XL</option>
+              ${RR_SIZES.map(s => `<option value="${s.v}" ${m.size===s.v?'selected':''}>${s.label}</option>`).join('')}
             </select>
           </td>
           <td><input type="text" data-mf="address" data-mi="${i}" value="${m.address||''}" placeholder="주소"></td>
@@ -412,10 +398,7 @@
             <label>티셔츠 사이즈 *</label>
             <select data-mf="size" data-mi="${i}">
               <option value="">-</option>
-              <option value="S" ${m.size==='S'?'selected':''}>S</option>
-              <option value="M" ${m.size==='M'?'selected':''}>M</option>
-              <option value="L" ${m.size==='L'?'selected':''}>L</option>
-              <option value="XL" ${m.size==='XL'?'selected':''}>XL</option>
+              ${RR_SIZES.map(s => `<option value="${s.v}" ${m.size===s.v?'selected':''}>${s.label}</option>`).join('')}
             </select>
           </div>
           <div class="field" style="margin-bottom:0;">
@@ -459,11 +442,9 @@
         if (el) el.closest('.field').classList.add('error');
       };
       if (st.type === 'individual') {
-        ['name','birth','phone','address','password'].forEach(k => { if (!data[k]) { mark(k); ok = false; } });
+        ['name','birth','phone','address','gender','size','password'].forEach(k => { if (!data[k]) { mark(k); ok = false; } });
         if (data.password && data.password.length < 4) { mark('password'); ok = false; }
-        if (!st.selectedGender) { toast('성별을 선택해 주세요.'); ok = false; }
-        else if (!st.selectedSize) { toast('티셔츠 사이즈를 선택해 주세요.'); ok = false; }
-        else if (!st.selectedPace) { toast('페이스 그룹을 선택해 주세요.'); ok = false; }
+        if (!st.selectedPace) { toast('페이스 그룹을 선택해 주세요.'); ok = false; }
       } else {
         ['teamName','password'].forEach(k => { if (!data[k]) { mark(k); ok = false; } });
         if (data.password && data.password.length < 4) { mark('password'); ok = false; }
@@ -481,10 +462,7 @@
       if (!ok) return;
 
       const record = { type: st.type, pace: st.selectedPace, ...data };
-      if (st.type === 'individual') {
-        record.gender = st.selectedGender;
-        record.size = st.selectedSize;
-      } else {
+      if (st.type !== 'individual') {
         // 1번 참가자 = 대표자
         const leader = st.members[0] || {};
         record.leaderName = leader.name || '';
@@ -562,24 +540,11 @@
 
   function bindLookupEditForm(record) {
     const editState = {
-      selectedGender: record.gender || null,
-      selectedSize: record.size || null,
       members: record.members ? JSON.parse(JSON.stringify(record.members)) : []
     };
 
     bindAutoFormat(document.querySelector('[data-ef="birth"]'), RR_FMT.birthInput);
     bindAutoFormat(document.querySelector('[data-ef="phone"]'), RR_FMT.phoneInput);
-
-    document.querySelectorAll('[data-egroup]').forEach(group => {
-      group.querySelectorAll('.size-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          group.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          if (group.dataset.egroup === 'size')   editState.selectedSize   = btn.dataset.val;
-          if (group.dataset.egroup === 'gender') editState.selectedGender = btn.dataset.val;
-        });
-      });
-    });
 
     const memberTbody = document.getElementById('editMemberTbody');
     const memberCards = document.getElementById('editMemberCards');
@@ -607,10 +572,7 @@
           <td>
             <select data-emf="size" data-emi="${i}">
               <option value="">-</option>
-              <option value="S" ${m.size==='S'?'selected':''}>S</option>
-              <option value="M" ${m.size==='M'?'selected':''}>M</option>
-              <option value="L" ${m.size==='L'?'selected':''}>L</option>
-              <option value="XL" ${m.size==='XL'?'selected':''}>XL</option>
+              ${RR_SIZES.map(s => `<option value="${s.v}" ${m.size===s.v?'selected':''}>${s.label}</option>`).join('')}
             </select>
           </td>
           <td><input type="text" data-emf="address" data-emi="${i}" value="${m.address||''}" placeholder="주소"></td>
@@ -641,10 +603,7 @@
             <label>티셔츠 사이즈 *</label>
             <select data-emf="size" data-emi="${i}">
               <option value="">-</option>
-              <option value="S" ${m.size==='S'?'selected':''}>S</option>
-              <option value="M" ${m.size==='M'?'selected':''}>M</option>
-              <option value="L" ${m.size==='L'?'selected':''}>L</option>
-              <option value="XL" ${m.size==='XL'?'selected':''}>XL</option>
+              ${RR_SIZES.map(s => `<option value="${s.v}" ${m.size===s.v?'selected':''}>${s.label}</option>`).join('')}
             </select>
           </div>
           <div class="field" style="margin-bottom:0;">
@@ -685,10 +644,8 @@
       const selectedPace = (document.querySelector('input[name="epace"]:checked') || {}).value;
 
       if (record.type === 'individual') {
-        ['name','birth','phone','address'].forEach(k => { if (!data[k]) { mark(k); ok = false; } });
-        if (!editState.selectedGender) { toast('성별을 선택해 주세요.'); ok = false; }
-        else if (!editState.selectedSize) { toast('티셔츠 사이즈를 선택해 주세요.'); ok = false; }
-        else if (!selectedPace) { toast('페이스 그룹을 선택해 주세요.'); ok = false; }
+        ['name','birth','phone','address','gender','size'].forEach(k => { if (!data[k]) { mark(k); ok = false; } });
+        if (!selectedPace) { toast('페이스 그룹을 선택해 주세요.'); ok = false; }
       } else {
         if (!data.teamName) { mark('teamName'); ok = false; }
         if (!selectedPace) { toast('페이스 그룹을 선택해 주세요.'); ok = false; }
@@ -714,8 +671,8 @@
         patch.phone = data.phone;
         patch.email = data.email;
         patch.address = data.address;
-        patch.gender = editState.selectedGender;
-        patch.size = editState.selectedSize;
+        patch.gender = data.gender;
+        patch.size = data.size;
       } else {
         patch.teamName = data.teamName;
         patch.email = data.email;
@@ -777,6 +734,7 @@
   function bindPageHandlers(path) {
     clearInterval(ddayTimer);
     clearInterval(heroTimer);
+    if (eventSubnavCleanup) { eventSubnavCleanup(); eventSubnavCleanup = null; }
     if (path === '/') {
       tickDday('ddayCount', true);
       ddayTimer = setInterval(() => tickDday('ddayCount', true), 1000);
@@ -794,7 +752,54 @@
     }
     if (path === '/lookup') bindLookup();
     if (path === '/notice') bindNoticeList();
+    if (path === '/event') bindEventSubnav();
     bindImageZoom();
+  }
+
+  // ================================
+  // 대회 안내 — 섹션 바로가기 바 (스크롤에 따라 현재 섹션 강조)
+  // ================================
+  // IntersectionObserver의 "겹치는 순간 여러 항목이 동시에 isIntersecting"인
+  // 케이스에서 배열상 나중 항목이 무조건 이기는 문제(짧은 섹션이 다음 섹션에
+  // 밀려 표시되는 버그)가 있어, sticky 바 바로 아래 기준선보다 위에 있는
+  // 섹션 중 가장 마지막(=가장 가까운) 섹션을 직접 계산하는 방식으로 변경.
+  let eventSubnavCleanup;
+  function bindEventSubnav() {
+    const nav = document.getElementById('eventSubnav');
+    if (!nav) return;
+    const links = Array.from(nav.querySelectorAll('a'));
+    const select = document.getElementById('eventSubnavSelect');
+    const sections = links.map(a => document.getElementById(a.dataset.sec)).filter(Boolean);
+    if (!sections.length) return;
+    const setActive = (id) => {
+      links.forEach(a => a.classList.toggle('active', a.dataset.sec === id));
+      if (select && select.value !== id) select.value = id;
+    };
+    const updateActive = () => {
+      const refY = nav.getBoundingClientRect().bottom + 4;
+      let current = sections[0];
+      for (const s of sections) {
+        if (s.getBoundingClientRect().top <= refY) current = s;
+        else break;
+      }
+      setActive(current.id);
+    };
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => { updateActive(); ticking = false; });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    eventSubnavCleanup = () => window.removeEventListener('scroll', onScroll);
+    updateActive();
+
+    if (select) {
+      select.addEventListener('change', () => {
+        const target = document.getElementById(select.value);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
   }
 
   // ================================
@@ -1021,7 +1026,7 @@
               ${a.type==='individual'?`
               <div class="dl-row"><div class="dl-term">생년월일</div><div class="dl-desc">${a.birth ? RR_FMT.birthInput(a.birth) : ''}</div></div>
               <div class="dl-row"><div class="dl-term">성별</div><div class="dl-desc">${a.gender==='male'?'남':a.gender==='female'?'여':''}</div></div>
-              <div class="dl-row"><div class="dl-term">사이즈</div><div class="dl-desc">${a.size||''}</div></div>
+              <div class="dl-row"><div class="dl-term">사이즈</div><div class="dl-desc">${RR_FMT.sizeLabel(a.size)}</div></div>
               `:''}
               <div class="dl-row"><div class="dl-term">신청일시</div><div class="dl-desc">${RR_FMT.dateTimeUTC(a.createdAt)}</div></div>
             </div>
@@ -1059,7 +1064,7 @@
             ${a.type==='individual' ? `
               <div class="field-row">
                 <div class="field"><label>성별</label><select id="edt_gender"><option value="male" ${a.gender==='male'?'selected':''}>남</option><option value="female" ${a.gender==='female'?'selected':''}>여</option></select></div>
-                <div class="field"><label>사이즈</label><select id="edt_size">${['S','M','L','XL'].map(s=>`<option value="${s}" ${a.size===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                <div class="field"><label>사이즈</label><select id="edt_size">${RR_SIZES.map(s=>`<option value="${s.v}" ${a.size===s.v?'selected':''}>${s.label}</option>`).join('')}</select></div>
               </div>
             `:''}
           </div>
@@ -1130,7 +1135,7 @@
             a.email || '',
             a.address || '',
             genderLabel(a.gender),
-            a.size || '',
+            a.size ? RR_FMT.sizeLabel(a.size) : '',
             RR_FMT.pace(a.pace),
             payLabel[a.paymentStatus] || '입금대기',
             RR_FMT.dateTimeUTC(a.createdAt)
@@ -1146,7 +1151,7 @@
               a.email || '',
               m.address || '',
               genderLabel(m.gender),
-              m.size || '',
+              m.size ? RR_FMT.sizeLabel(m.size) : '',
               RR_FMT.pace(a.pace),
               payLabel[a.paymentStatus] || '입금대기',
               RR_FMT.dateTimeUTC(a.createdAt)
@@ -1357,6 +1362,12 @@
       if (a.hasAttribute('download')) return;
       const url = new URL(a.href, location.href);
       if (url.origin !== location.origin) return;
+      if (url.hash && normalizePath(url.pathname) === normalizePath(location.pathname)) {
+        e.preventDefault();
+        const target = document.querySelector(url.hash);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
       e.preventDefault();
       navigate(url.pathname);
     });

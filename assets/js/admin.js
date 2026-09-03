@@ -1,9 +1,8 @@
-/* 2026 River Run - Admin pages (login + 7 modules) */
+/* 2026 River Run - Admin pages (login + 5 modules) */
 
 const AdminIcon = {
   dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>',
   users:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-  pace:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>',
   notice:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
   gallery:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
   event:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
@@ -12,7 +11,6 @@ const AdminIcon = {
 const ADMIN_MENU = [
   { key: 'dashboard', label: '대시보드',   icon: AdminIcon.dashboard },
   { key: 'applicants', label: '참가자 관리', icon: AdminIcon.users },
-  { key: 'pace',       label: '페이스 그룹', icon: AdminIcon.pace },
   { key: 'notice',     label: '공지사항',    icon: AdminIcon.notice },
   { key: 'gallery',    label: '갤러리',      icon: AdminIcon.gallery },
   { key: 'event',      label: '행사 정보',   icon: AdminIcon.event }
@@ -145,7 +143,12 @@ function adminDashboard() {
 
     <div class="admin-panel">
       <div class="admin-panel-head"><h3>페이스 그룹별 신청 현황</h3></div>
-      <div class="admin-panel-body">${paceCards}</div>
+      <div class="admin-panel-body">
+        ${paceCards}
+        <div class="form-note" style="margin-top:20px;">
+          참가자가 자유롭게 선택하는 그룹별 신청 인원 통계입니다. 선착순 마감 기준은 정원이 아니라 <a href="/admin/event" style="color:var(--kw-blue);">행사 정보</a>의 "모집 정원(전체)"입니다.
+        </div>
+      </div>
     </div>
 
     <div class="admin-panel">
@@ -239,42 +242,6 @@ function adminApplicants() {
 
 // =====================================================================
 // Pace management
-// =====================================================================
-function adminPace() {
-  const total = RR_STORE.state.paceGroups.reduce((s, p) => s + p.applied, 0);
-  const rows = RR_STORE.state.paceGroups.map(p => {
-    const pct = total ? Math.round(p.applied / total * 100) : 0;
-    return `
-      <div class="pace-row" data-pace-id="${p.id}">
-        <div class="pace-name">${p.label}<span class="desc">${p.desc}</span></div>
-        <div class="pace-bar"><div class="pace-bar-fill" style="width:${pct}%"></div></div>
-        <div class="pace-meta">신청 <strong>${p.applied}</strong>명</div>
-        <div class="pace-meta" style="text-align:right;color:var(--text-3);">전체 신청의 ${pct}%</div>
-      </div>
-    `;
-  }).join('');
-
-  const content = `
-    <div class="admin-page-head">
-      <div>
-        <h1>페이스 그룹별 신청 현황</h1>
-        <p>참가자가 자유롭게 선택하는 그룹별 신청 인원 통계입니다. 선착순 마감 기준은 정원이 아니라 <a href="/admin/event" style="color:var(--kw-blue);">행사 정보</a>의 "모집 정원(전체)"입니다.</p>
-      </div>
-    </div>
-
-    <div class="admin-panel">
-      <div class="admin-panel-head"><h3>페이스 그룹별 신청 인원</h3></div>
-      <div class="admin-panel-body">
-        ${rows}
-        <div class="form-note" style="margin-top:24px;">
-          <strong>안내</strong> 그룹별 러닝 페이서 배정 등 현장 운영 계획을 세우는 용도의 참고 통계입니다.
-        </div>
-      </div>
-    </div>
-  `;
-  return adminShell('pace', content);
-}
-
 // =====================================================================
 // Notice management
 // =====================================================================
@@ -514,4 +481,4 @@ function adminEvent() {
   return adminShell('event', content);
 }
 
-window.RR_ADMIN = { adminLogin, adminDashboard, adminApplicants, adminPace, adminNotice, adminGallery, adminEvent };
+window.RR_ADMIN = { adminLogin, adminDashboard, adminApplicants, adminNotice, adminGallery, adminEvent };

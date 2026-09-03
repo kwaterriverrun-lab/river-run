@@ -89,7 +89,7 @@ create table applicants (
   birth text,
   address text,
   gender text check (gender in ('male','female')),
-  size text check (size in ('S','M','L','XL')),
+  size text check (size in ('S','M','L','XL','XXL')),
   -- 단체/가족 전용
   team_name text,
   leader_name text,

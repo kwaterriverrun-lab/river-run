@@ -72,7 +72,7 @@ function pageHome() {
           <h2>리버런(RiverRun) | 강과 함께 달리는 특별한 시간</h2>
           <p>
             리버런은 한국수자원공사(K-water)가 우리 강과 하천의 아름다움을 알리고,</br>
-            시민들이 자연 속에서 건강하게 즐기는 러닝 문화를 만들어 가기 위해 마련한 대회입니다.
+            시민들이 자연 속에서 건강하게 즐기는 러닝 문화를 만들어 가기 위해 조성한 안전한 러닝 코스 입니다.
           </p>
           <div class="home-shortcuts">
             <a href="/about" class="btn btn-outline">River Run 소개</a>
@@ -192,14 +192,34 @@ function pageAbout() {
 // ========================================================================
 function pageEvent() {
   const e = RR_STORE.state.event;
+  const sections = [
+    { id: 'sec-course',   label: '코스 안내' },
+    { id: 'sec-overview', label: '행사 개요' },
+    { id: 'sec-gifts',    label: '참가 기념품' },
+    { id: 'sec-parking',  label: '주차 안내' },
+    { id: 'sec-venue',    label: '행사장 안내' },
+    { id: 'sec-programs', label: '부대 프로그램' }
+  ];
   return `
     ${pageHeaderBlock('대회 안내', "2026 River Run '세종'")}
+    <nav class="event-subnav" id="eventSubnav">
+      <div class="container event-subnav-inner">
+        ${sections.map((s, i) => `<a href="#${s.id}" data-sec="${s.id}" class="${i === 0 ? 'active' : ''}">${s.label}</a>`).join('')}
+      </div>
+      <div class="event-subnav-select-wrap">
+        <select id="eventSubnavSelect" class="event-subnav-select" aria-label="섹션 선택">
+          ${sections.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
+        </select>
+      </div>
+    </nav>
     <section class="section">
       <div class="container">
 
-        <div class="block">
+        <div class="block" id="sec-course">
           <div class="block-head"><h3>코스 안내</h3></div>
           <div class="block-body">
+            <p class="course-route-line">세종보 홍보관 ▶ 금강보행교(이응다리) ▶ 햇무리교 하부(반환점) ▶ 금강보행교 ▶ 세종보 홍보관</p>
+
             <button class="course-map-photo zoom-trigger" data-zoom-src="/assets/course-map.png" data-zoom-title="2026 River Run '세종' · 10km 코스" aria-label="코스 지도 확대">
               <img src="/assets/course-map.png" alt="10km 코스 지도">
               <span class="course-card-zoom-hint">클릭하여 확대</span>
@@ -212,22 +232,23 @@ function pageEvent() {
           </div>
         </div>
 
-        <div class="block">
+        <div class="block" id="sec-overview">
           <div class="block-head"><h3>행사 개요</h3></div>
           <div class="block-body">
             <div class="dl">
               <div class="dl-row"><div class="dl-term">일시</div><div class="dl-desc">${RR_FMT.dateTime(e.date)}<br><span style="font-size:13px;color:var(--text-3)">참가자 등록 오전 8시부터</span></div></div>
               <div class="dl-row"><div class="dl-term">장소</div><div class="dl-desc">${e.location}</div></div>
               <div class="dl-row"><div class="dl-term">종목</div><div class="dl-desc">${e.distance} <span class="badge blue" style="margin-left:6px;">비경쟁 레이스</span></div></div>
+              <div class="dl-row"><div class="dl-term">참가인원</div><div class="dl-desc">300명 (선착순)</div></div>
               <div class="dl-row"><div class="dl-term">참가비</div><div class="dl-desc">${RR_FMT.won(e.fee)}</div></div>
               <div class="dl-row"><div class="dl-term">주최 / 주관</div><div class="dl-desc">${e.host} / ${e.organizer}</div></div>
               <div class="dl-row"><div class="dl-term">진행 방식</div><div class="dl-desc">페이스별(러닝페이서 운용) 그룹 러닝레이스 · 기록 미제공</div></div>
-              <div class="dl-row"><div class="dl-term">접수 기간</div><div class="dl-desc">${RR_FMT.dateTime(e.applyOpen)} ~ ${RR_FMT.dateTime(e.applyClose)}</div></div>
+              <div class="dl-row"><div class="dl-term">접수 기간</div><div class="dl-desc">2026. 09. 04 (금) 14:00 ~ 2026. 09. 11 (금) 12:00<br><span style="font-size:13px;color:var(--text-3);line-height:1.4;display:inline-block;margin-top:4px;">* 선착순 접수이며, 참가인원 300명 모집 완료 시 조기 마감<br>* 안전을 위해 초등생 이상부터 참가 권장</span></div></div>
             </div>
           </div>
         </div>
 
-        <div class="block">
+        <div class="block" id="sec-gifts">
           <div class="block-head"><h3>참가 기념품</h3></div>
           <div class="block-body">
             <div class="gift-grid">
@@ -250,7 +271,6 @@ function pageEvent() {
                 <div class="gift-chips">
                   <span class="gift-chip">완주 메달</span>
                   <span class="gift-chip">음료·간식</span>
-                  <span class="gift-chip">휴식존 돗자리</span>
                 </div>
               </div>
             </div>
@@ -258,7 +278,7 @@ function pageEvent() {
           </div>
         </div>
 
-        <div class="block">
+        <div class="block" id="sec-parking">
           <div class="block-head"><h3>주차 안내</h3></div>
           <div class="block-body">
             <div class="form-note" style="margin-bottom: 20px;">
@@ -273,6 +293,74 @@ function pageEvent() {
               <div class="dl-row"><div class="dl-term">인근 ③</div><div class="dl-desc">한솔중학교 · 세종시 나리로 43</div></div>
             </div>
             <p style="font-size: 12.5px; color: var(--text-3); margin: 18px 0 0;">※ 주차장별 이용 가능 공간은 행사 당일 현장 상황에 따라 달라질 수 있습니다.</p>
+          </div>
+        </div>
+
+        <div class="block" id="sec-venue">
+          <div class="block-head"><h3>행사장 안내</h3></div>
+          <div class="block-body">
+            <button class="course-map-photo zoom-trigger" data-zoom-src="/assets/event_map.png" data-zoom-title="행사장 안내도" aria-label="행사장 안내도 확대">
+              <img src="/assets/event_map.png" alt="행사장 안내도">
+              <span class="course-card-zoom-hint">클릭하여 확대</span>
+            </button>
+
+            <div class="venue-guide">
+              <div class="venue-guide-item">
+                <h4>행사 시간 및 장소</h4>
+                <p>행사 시작 시간은 10월 17일(토) 오전 9시입니다. 참가자 등록과 물품 보관 등 준비시간을 고려하여 30분 전까지 도착해 주세요.</p>
+                <p class="venue-guide-note">* 참가등록은 오전 8시부터 가능</p>
+              </div>
+              <div class="venue-guide-item">
+                <h4>탈의실·물품 보관소</h4>
+                <ul>
+                  <li>행사 당일 참가자를 위한 탈의실과 물품 보관소를 운영합니다. (08시~12시)</li>
+                  <li>원활한 행사 참여를 위해 가급적 간소한 복장 및 최소한의 소지품만 지참해주세요.</li>
+                </ul>
+              </div>
+              <div class="venue-guide-item">
+                <h4>화장실</h4>
+                <p>화장실은 세종보 홍보관 건물 내(1~2층)에 있습니다.</p>
+              </div>
+              <div class="venue-guide-item">
+                <h4>러닝 출발/도착</h4>
+                <ul>
+                  <li>출발 시에는 출발 안내에 따라 행사장에서 러닝 출발대기선으로 이동해주세요.</li>
+                  <li>본인의 페이스 그룹에 맞춰 안내에 따라 순차적으로 출발해 주세요.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="form-note" style="margin-top: 20px; margin-bottom: 0;">
+              행사장 내 이동 시에는 차량과 자전거 통행에 유의하시고, 안전을 위해 현장 진행요원의 안내를 우선적으로 따라주시기 바랍니다.
+            </div>
+          </div>
+        </div>
+
+        <div class="block" id="sec-programs">
+          <div class="block-head"><h3>부대 프로그램</h3></div>
+          <div class="block-body">
+            <div class="unit-grid">
+              <div class="unit-card">
+                <img src="/assets/unit01.png" alt="완주 포토존">
+                <p class="unit-card-caption">사진 촬영 후 SNS 업로드 시 River Run 굿즈를 드려요~!</p>
+              </div>
+              <div class="unit-card">
+                <img src="/assets/unit02.png" alt="Relax Zone">
+                <p class="unit-card-caption">러닝 참가자, 가족 등이 함께 휴식 및 교류하는 공간입니다 (참가자 돗자리 제공)</p>
+              </div>
+              <div class="unit-card">
+                <img src="/assets/unit03.png" alt="완주 기념품">
+                <p class="unit-card-caption">코스를 완주한 참가자에게는 메달과 간식팩(음료·다과)을 제공합니다.</p>
+              </div>
+              <div class="unit-card">
+                <img src="/assets/unit04.png" alt="현장 이벤트 · 리버런 럭키존">
+                <p class="unit-card-caption">행운을 던져라! 다트게임. 허리벨트, 양말 등 다양한 러닝 아이템을 받아가세요.</p>
+              </div>
+            </div>
+            <div class="form-note" style="margin-top: 20px; margin-bottom: 0;">
+              <strong>친환경 실천 · 러닝의 끝, 새로운 시작</strong><br>
+              보급소 사용컵을 가져오시면 완주 후 미니 화분으로 재탄생시켜 드립니다.
+            </div>
           </div>
         </div>
 
@@ -359,8 +447,8 @@ function renderStep1Type() {
   const remaining = RR_STORE.state.event.maxCapacity - (st.totalApplied ?? 0);
   const options = [
     { id: 'individual', title: '개인', desc: '1인 신청' },
-    { id: 'family',     title: '가족', desc: '3인 이상 가족' },
-    { id: 'group',      title: '단체', desc: '10 ~ 40인' }
+    { id: 'family',     title: '가족', desc: '3인 이상 가족', note: '(초등생 이상부터 참가 권장)' },
+    { id: 'group',      title: '단체', desc: '10 ~ 40인', note: '(러닝 크루, 동호회 등)' }
   ].map(o => ({ ...o, closed: remaining < APPLY_TYPE_MIN_REMAIN[o.id] }));
 
   const selected = options.find(o => o.id === st.type);
@@ -378,6 +466,7 @@ function renderStep1Type() {
           }
           <h3>${o.title}</h3>
           <p>${o.closed ? '정원 마감' : o.desc}</p>
+          ${!o.closed && o.note ? `<p class="choice-card-note">${o.note}</p>` : ''}
         </div>
       `).join('')}
     </div>
@@ -393,7 +482,7 @@ function renderStep1Type() {
 function renderStep2Agree() {
   const st = window.RR_APP.applyState;
   const agreements = [
-    { id:'a1', title:'개인정보 수집·이용 동의',       body:`<p><strong>1. 수집 항목</strong> : 성명, 생년월일, 연락처, 티셔츠 사이즈, 이메일 주소 등</p><p><strong>2. 수집 목적</strong></p><ul><li>행사 참가신청 및 참가자 확인</li><li>참가자 안내 (일정, 공지사항, 주의사항 전달 등)</li><li>기념품 지급 및 참가 관리 등</li></ul><p><strong>3. 보유 및 이용기간</strong> : 행사 종료 후 1년간 보관 후 파기 (단, 관계법령에 따라 보존이 필요한 경우 해당 기간까지 보관)</p>` },
+    { id:'a1', title:'개인정보 수집·이용 동의',       body:`<p><strong>1. 수집 항목</strong> : 성명, 생년월일, 연락처, 티셔츠 사이즈, 이메일 주소 등</p><p><strong>2. 수집 목적</strong></p><ul><li>행사 참가신청 및 참가자 확인</li><li>참가자 안내 (일정, 공지사항, 주의사항 전달 등)</li><li>기념품 지급 및 참가 관리 등</li></ul><p><strong>3. 보유 및 이용기간</strong> : 행사 종료 후 1년간 보관 후 파기 (단, 관계법령에 따라 보존이 필요한 경우 해당 기간까지 보관)</p><p><strong>4. 위탁처리기관 및 위탁업무 내용</strong></p><ul><li>위탁처리기관 : ㈜러닝브레이커</li><li>위탁업무 내용 : 개인정보 수집 및 변경, 참가시스템 관리/운영 유지보수</li></ul>` },
     { id:'a3', title:'초상권 이용 동의',              body:`<p>리버런(이하 "행사") 참여와 관련하여, 본인은 행사 주최사 및 주관사가 행사 진행 중 촬영한 본인의 사진 및 영상 등을 이용·활용하는 것에 동의합니다.</p><p><strong>1. 수집 및 이용 주체</strong> : 한국수자원공사, 케이워터운영관리㈜</p><p><strong>2. 수집 및 이용 목적</strong></p><ul><li>행사 기록</li><li>행사 및 관련 사업의 비상업적 홍보 (온라인 및 오프라인)</li></ul><p><strong>3. 이용기간</strong> : 주최·주관사의 홍보 목적을 위해 지속적으로 활용될 수 있음</p>` },
     { id:'a4', title:'참가자 준수사항 동의',          body:`<p><strong>1. 건강상태 확인</strong> — 10K 코스를 완주할 수 있는 건강 상태임을 스스로 확인해야 하며, 이상이 있는 경우 주최 측에 사전 고지. 행사 중 몸에 이상이 느껴질 경우 즉시 멈추고 도움을 요청해야 합니다.</p><p><strong>2. 안전수칙 준수</strong> — 주최 측, 진행요원, 의료요원의 지시에 따라야 하며, 무리한 경쟁·고의적인 충돌·위험한 행동을 금지합니다.</p><p><strong>3. 참가자 티셔츠 착용</strong> — 지급된 티셔츠는 의무적으로 착용하며, 러닝화 등 안전한 장비를 착용합니다.</p><p><strong>4. 기상 상황에 따른 운영</strong> — 기상·안전상의 이유로 코스가 변경·중단될 수 있으며, 참가자는 이에 협조합니다.</p><p><strong>5. 개인물품 책임</strong> — 귀중품은 참가자 본인이 책임지고 보관하며, 분실·도난 시 책임을 지지 않습니다.</p>` }
   ];
@@ -488,21 +577,23 @@ function renderIndividualForm() {
       <div class="field-err">주소를 입력해 주세요.</div>
     </div>
 
-    <div class="field">
-      <label>성별<span class="req">*</span></label>
-      <div class="gender-group" data-group="gender">
-        <button type="button" class="size-btn" data-val="male">남</button>
-        <button type="button" class="size-btn" data-val="female">여</button>
+    <div class="field-row">
+      <div class="field">
+        <label>성별<span class="req">*</span></label>
+        <select data-f="gender">
+          <option value="">선택</option>
+          <option value="male">남</option>
+          <option value="female">여</option>
+        </select>
+        <div class="field-err">성별을 선택해 주세요.</div>
       </div>
-    </div>
-
-    <div class="field">
-      <label>티셔츠 사이즈<span class="req">*</span></label>
-      <div class="size-group" data-group="size">
-        <button type="button" class="size-btn" data-val="S">S</button>
-        <button type="button" class="size-btn" data-val="M">M</button>
-        <button type="button" class="size-btn" data-val="L">L</button>
-        <button type="button" class="size-btn" data-val="XL">XL</button>
+      <div class="field">
+        <label>티셔츠 사이즈<span class="req">*</span></label>
+        <select data-f="size">
+          <option value="">선택</option>
+          ${RR_SIZES.map(s => `<option value="${s.v}">${s.label}</option>`).join('')}
+        </select>
+        <div class="field-err">사이즈를 선택해 주세요.</div>
       </div>
     </div>
 
@@ -599,7 +690,7 @@ function renderStep4Done() {
   const r = window.RR_APP.applyState.result || {};
   const name = r.type === 'individual' ? r.name : (r.teamName + ' (' + r.leaderName + ')');
   const countRow = r.type === 'individual'
-    ? `<div class="dl-row"><div class="dl-term">티셔츠</div><div class="dl-desc">${r.size || '-'}</div></div>`
+    ? `<div class="dl-row"><div class="dl-term">티셔츠</div><div class="dl-desc">${RR_FMT.sizeLabel(r.size)}</div></div>`
     : `<div class="dl-row"><div class="dl-term">참가 인원</div><div class="dl-desc">${(r.members || []).length}명</div></div>`;
   return `
     <div class="complete-panel">
@@ -713,7 +804,7 @@ function renderLookupConfirm(record) {
         <div class="dl-row"><div class="dl-term">주소</div><div class="dl-desc">${address || '-'}</div></div>
         <div class="dl-row"><div class="dl-term">페이스</div><div class="dl-desc">${RR_FMT.pace(record.pace)}</div></div>
         ${record.type === 'individual'
-          ? `<div class="dl-row"><div class="dl-term">티셔츠</div><div class="dl-desc">${record.size || '-'}</div></div>`
+          ? `<div class="dl-row"><div class="dl-term">티셔츠</div><div class="dl-desc">${RR_FMT.sizeLabel(record.size)}</div></div>`
           : `<div class="dl-row"><div class="dl-term">참가 인원</div><div class="dl-desc">${(record.members || []).length}명</div></div>`
         }
         <div class="dl-row"><div class="dl-term">입금상태</div><div class="dl-desc">${window.paymentBadge(record.paymentStatus)}</div></div>
@@ -788,18 +879,23 @@ function renderLookupEditIndividual(record) {
         <div class="field-err">주소를 입력해 주세요.</div>
       </div>
 
-      <div class="field">
-        <label>성별<span class="req">*</span></label>
-        <div class="gender-group" data-egroup="gender">
-          <button type="button" class="size-btn ${record.gender === 'male' ? 'active' : ''}" data-val="male">남</button>
-          <button type="button" class="size-btn ${record.gender === 'female' ? 'active' : ''}" data-val="female">여</button>
+      <div class="field-row">
+        <div class="field">
+          <label>성별<span class="req">*</span></label>
+          <select data-ef="gender">
+            <option value="">선택</option>
+            <option value="male" ${record.gender === 'male' ? 'selected' : ''}>남</option>
+            <option value="female" ${record.gender === 'female' ? 'selected' : ''}>여</option>
+          </select>
+          <div class="field-err">성별을 선택해 주세요.</div>
         </div>
-      </div>
-
-      <div class="field">
-        <label>티셔츠 사이즈<span class="req">*</span></label>
-        <div class="size-group" data-egroup="size">
-          ${['S','M','L','XL'].map(s => `<button type="button" class="size-btn ${record.size === s ? 'active' : ''}" data-val="${s}">${s}</button>`).join('')}
+        <div class="field">
+          <label>티셔츠 사이즈<span class="req">*</span></label>
+          <select data-ef="size">
+            <option value="">선택</option>
+            ${RR_SIZES.map(s => `<option value="${s.v}" ${record.size === s.v ? 'selected' : ''}>${s.label}</option>`).join('')}
+          </select>
+          <div class="field-err">사이즈를 선택해 주세요.</div>
         </div>
       </div>
 
@@ -994,6 +1090,12 @@ function pagePrivacy() {
           <p>회사는 안정적인 서비스 제공을 위해 아래와 같이 개인정보 처리 업무를 위탁하고 있습니다. 위탁계약 체결 시 관계 법령에 따라 수탁자가 개인정보를 안전하게 처리하도록 필요한 사항을 규정하고 있습니다.</p>
           <div class="policy-table">
             <div class="policy-tr">
+              <div class="policy-th">수탁업체</div><div class="policy-td">㈜러닝브레이커</div>
+            </div>
+            <div class="policy-tr">
+              <div class="policy-th">위탁 업무</div><div class="policy-td">개인정보 수집 및 변경, 참가시스템 관리/운영 유지보수</div>
+            </div>
+            <div class="policy-tr">
               <div class="policy-th">수탁업체</div><div class="policy-td">Supabase, Inc.</div>
             </div>
             <div class="policy-tr">
@@ -1020,7 +1122,7 @@ function pagePrivacy() {
             <div class="policy-tr"><div class="policy-th">연락처</div><div class="policy-td">031-999-7813</div></div>
           </div>
 
-          <p class="policy-effective">본 방침은 <strong>2026년 8월 31일</strong>부터 시행됩니다.</p>
+          <p class="policy-effective">본 방침은 <strong>2026년 8월 1일</strong>부터 시행됩니다.</p>
         </div>
       </div>
     </section>
@@ -1090,7 +1192,7 @@ function pageTerms() {
           <h3 class="policy-h">제8조 (분쟁의 해결)</h3>
           <p>본 약관과 관련하여 회사와 이용자 간에 발생한 분쟁은 상호 협의하여 해결하며, 협의가 이루어지지 않을 경우 관련 법령 및 관할 법원의 판결에 따릅니다.</p>
 
-          <p class="policy-effective">본 약관은 <strong>2026년 8월 31일</strong>부터 시행됩니다.</p>
+          <p class="policy-effective">본 약관은 <strong>2026년 8월 1일</strong>부터 시행됩니다.</p>
         </div>
       </div>
     </section>
@@ -1104,7 +1206,7 @@ function pageRefund() {
       <div class="container" style="max-width: 900px;">
         <div class="policy">
           <p class="policy-lead">
-            2026 River Run '세종' 대회(이하 "행사")의 참가비 환불은 아래의 정책에 따라 진행됩니다.
+            2026 River Run '세종' 대회(이하 "행사")의 참가비 환불은 아래의 정책에 따라 진행됩니다.</br>
             참가신청 전에 반드시 환불 정책을 확인해 주시기 바랍니다.
           </p>
 
@@ -1116,26 +1218,21 @@ function pageRefund() {
               <div class="policy-td">환불 금액</div>
             </div>
             <div class="policy-tr">
-              <div class="policy-th">접수 마감일 이전 (~ 2026. 09. 11)</div>
+              <div class="policy-th">환불신청 기한 내 (2026.10.6(화)까지)</div>
               <div class="policy-td"><strong>100% 환불</strong></div>
             </div>
             <div class="policy-tr">
-              <div class="policy-th">접수 마감일 이후 ~ 대회 30일 전</div>
-              <div class="policy-td">참가비의 <strong>50% 환불</strong></div>
-            </div>
-            <div class="policy-tr">
-              <div class="policy-th">대회 30일 이내</div>
+              <div class="policy-th">환불신청기한 경과 후</div>
               <div class="policy-td"><strong>환불 불가</strong></div>
             </div>
           </div>
-          <p class="policy-note">※ 사전 배송된 기념품(티셔츠·완주메달·배번호표·부직포백)은 반환 시에만 환불이 가능하며, 배송·반송 비용은 참가자 부담입니다.</p>
+          <p class="policy-note">※ 환불신청 기한(26.10.6(화)) 이후부터는 참가비 환불이 불가하오니 참가신청시 유의하여 주시기 바랍니다. </p>
 
           <h3 class="policy-h">제2조 (환불이 불가한 경우)</h3>
           <ul class="policy-ul">
-            <li>대회 30일 이내 개인 사정에 의한 취소</li>
+            <li>환불신청기한 경과 후</li>
             <li>참가자 준수사항 위반으로 인한 참가 자격 상실</li>
             <li>당일 미출석(No-show)</li>
-            <li>이미 지급받은 기념품을 반환하지 않은 경우</li>
           </ul>
 
           <h3 class="policy-h">제3조 (전액 환불 사유)</h3>
@@ -1148,23 +1245,23 @@ function pageRefund() {
 
           <h3 class="policy-h">제4조 (환불 신청 방법)</h3>
           <ol class="policy-ol">
-            <li>환불은 운영사무국(031-999-7813)으로 전화 또는 이메일 신청 후 처리됩니다.</li>
+            <li>환불은 운영사무국(031-999-7813)으로 전화 또는 이메일(ya@kwateromc.co.kr) 신청 후 처리됩니다.</li>
             <li>환불 신청 시 아래 정보를 확인합니다.
               <ul>
                 <li>신청자 성명·연락처</li>
-                <li>환불 계좌 정보 (예금주·은행명·계좌번호)</li>
+                <li>환불 계좌 정보 (예금주·은행명·계좌번호)(통장사본 첨부)</li>
               </ul>
             </li>
-            <li>환불 처리 기간은 신청일로부터 <strong>영업일 기준 7일 이내</strong>입니다.</li>
+            <li>환불 처리 기간은 신청일로부터 <strong>영업일 기준 10일 이내</strong>입니다.</li>
           </ol>
 
           <h3 class="policy-h">제5조 (문의처)</h3>
           <div class="policy-table">
             <div class="policy-tr"><div class="policy-th">운영사무국</div><div class="policy-td">031-999-7813</div></div>
-            <div class="policy-tr"><div class="policy-th">운영시간</div><div class="policy-td">평일 09:00 ~ 18:00 (주말·공휴일 제외)</div></div>
+            <div class="policy-tr"><div class="policy-th">운영시간</div><div class="policy-td">평일 10:00 ~ 17:00 (주말·공휴일 제외)</div></div>
           </div>
 
-          <p class="policy-effective">본 정책은 <strong>2026년 8월 31일</strong>부터 시행됩니다.</p>
+          <p class="policy-effective">본 정책은 <strong>2026년 8월 1일</strong>부터 시행됩니다.</p>
         </div>
       </div>
     </section>
