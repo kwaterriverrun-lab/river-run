@@ -1137,12 +1137,25 @@
             </div>
             ${memberHtml}
           </div>
-          <div class="modal-foot"><button class="btn btn-ghost modal-close">닫기</button></div>
+          <div class="modal-foot">
+            <button class="btn btn-ghost" id="viewResetPwBtn" style="color:var(--danger);">비밀번호 초기화(1017)</button>
+            <button class="btn btn-ghost modal-close">닫기</button>
+          </div>
         </div>
       `;
       document.body.appendChild(modal);
       modal.querySelectorAll('.modal-close').forEach(x => x.addEventListener('click', () => modal.remove()));
       modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+      modal.querySelector('#viewResetPwBtn').addEventListener('click', async () => {
+        if (!confirm('접수확인 비밀번호를 1017로 초기화하시겠습니까?')) return;
+        try {
+          await RR_STORE.updateApplicantInSupabase(a.id, { password: '1017' });
+          toast('비밀번호가 1017로 초기화되었습니다.');
+        } catch (e) {
+          console.error(e);
+          toast('초기화에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        }
+      });
     }
 
     function editApplicant(id) {
