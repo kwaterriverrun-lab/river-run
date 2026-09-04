@@ -356,6 +356,12 @@ window.RR_STORE = {
     await this.loadPaceGroupsFromSupabase();
     return applicant;
   },
+  // 참가신청 제출 직전 중복 확인 — candidates: [{name, birth, phone}...] (개인 1명 / 가족·단체는 구성원 전체)
+  async checkDuplicateApplicants(candidates) {
+    const { data, error } = await window.RR_SUPABASE.rpc('check_duplicate_applicants', { p_candidates: candidates });
+    if (error) throw error;
+    return data || [];
+  },
   // 접수확인(조회) — 서버에서 일치하는 1건만 반환
   async lookupApplicant(name, phone, password) {
     const { data, error } = await window.RR_SUPABASE.rpc('lookup_applicant', { p_name: name, p_phone: phone, p_password: password });

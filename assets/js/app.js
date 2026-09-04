@@ -475,7 +475,25 @@
         record.members    = st.members.slice();
       }
 
+      const candidates = st.type === 'individual'
+        ? [{ name: data.name, birth: data.birth, phone: data.phone }]
+        : st.members.map(m => ({ name: m.name, birth: m.birth, phone: m.phone }));
+
       submit.disabled = true;
+      try {
+        const dups = await RR_STORE.checkDuplicateApplicants(candidates);
+        if (dups.length) {
+          showDuplicateModal(dups);
+          submit.disabled = false;
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+        toast('중복 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        submit.disabled = false;
+        return;
+      }
+
       try {
         const saved = await RR_STORE.createApplicantInSupabase(record);
         st.result = saved;
@@ -487,6 +505,55 @@
         submit.disabled = false;
       }
     });
+
+    function showDuplicateModal(dups) {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay show';
+      const typeText = (d) => d.type === 'individual' ? '개인' : `${RR_HELPERS.typeLabel(d.type)}(${d.team_name || ''})`;
+      const rowsHtml = dups.map(d => `
+        <tr>
+          <td>${typeText(d)}</td>
+          <td>${d.name}</td>
+          <td>${RR_FMT.birthInput(d.birth)}</td>
+          <td>${RR_FMT.phoneInput(d.phone)}</td>
+        </tr>
+      `).join('');
+      const cardsHtml = dups.map(d => `
+        <div class="dup-card">
+          <div class="dup-card-type">${typeText(d)}</div>
+          <div class="dup-card-row"><span>이름</span><span>${d.name}</span></div>
+          <div class="dup-card-row"><span>생년월일</span><span>${RR_FMT.birthInput(d.birth)}</span></div>
+          <div class="dup-card-row"><span>연락처</span><span>${RR_FMT.phoneInput(d.phone)}</span></div>
+        </div>
+      `).join('');
+      modal.innerHTML = `
+        <div class="modal">
+          <div class="modal-head"><h3>중복된 참가 신청 내역이 있습니다</h3><button class="modal-close" aria-label="닫기">&times;</button></div>
+          <div class="modal-body">
+            <div class="table-scroll">
+              <table class="admin-table dup-table">
+                <thead><tr><th>유형</th><th>이름</th><th>생년월일</th><th>연락처</th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+            </div>
+            <div class="dup-cards">${cardsHtml}</div>
+            <div class="field-help" style="margin-top:16px;">본인이 신청한 내역이라면 '접수 확인'에서 조회·수정·취소할 수 있습니다.<br>아니라면 운영사무국(031-999-7813)으로 문의해 주세요.</div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-ghost modal-close">닫기</button>
+            <button class="btn btn-primary" id="dupGoLookup">접수 확인으로 이동</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelectorAll('.modal-close').forEach(x => x.addEventListener('click', close));
+      modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+      modal.querySelector('#dupGoLookup').addEventListener('click', () => {
+        close();
+        navigate('/lookup');
+      });
+    }
   }
 
   // ================================

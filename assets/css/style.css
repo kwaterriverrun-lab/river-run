@@ -1442,6 +1442,17 @@ main {
 .modal-body p { margin: 0 0 12px; }
 .modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
 
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.dup-table { font-size: 13px; }
+.dup-table thead th, .dup-table tbody td { padding: 8px 10px; }
+.dup-cards { display: none; }
+.dup-card { border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px; margin-bottom: 8px; background: var(--surface-2); }
+.dup-card:last-child { margin-bottom: 0; }
+.dup-card-type { font-weight: 700; color: var(--kw-blue); font-size: 12.5px; margin-bottom: 6px; }
+.dup-card-row { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; padding: 3px 0; }
+.dup-card-row span:first-child { color: var(--text-3); flex-shrink: 0; }
+.dup-card-row span:last-child { text-align: right; }
+
 /* ==========================================================================
    Gallery
    ========================================================================== */
@@ -2597,4 +2608,13 @@ main {
 
   /* Course showcase mobile */
   .course-showcase-grid { grid-template-columns: 1fr; }
+
+  /* Modal mobile */
+  .modal-head { padding: 14px 16px; }
+  .modal-head h3 { font-size: 15.5px; }
+  .modal-body { padding: 16px; font-size: 13px; }
+  .modal-foot { padding: 12px 16px; flex-direction: column-reverse; }
+  .modal-foot .btn { width: 100%; }
+  .table-scroll { display: none; }
+  .dup-cards { display: block; }
 }

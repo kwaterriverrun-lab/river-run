@@ -194,6 +194,32 @@ as $$
 $$;
 grant execute on function lookup_applicant(text, text, text) to anon;
 
+-- 참가신청 제출 직전 중복 신청 확인 — 이름·생년월일·연락처가 모두 일치하는 기존 신청자(개인 또는
+-- 가족·단체 구성원 중 누구든)를 찾아 유형·팀명과 함께 반환. p_candidates는 [{"name","birth","phone"}...]
+-- 형태의 jsonb 배열 (개인은 1명, 가족·단체는 구성원 전체를 넘김).
+create or replace function check_duplicate_applicants(p_candidates jsonb)
+returns table(type text, team_name text, name text, birth text, phone text)
+language sql
+stable
+as $$
+  select a.type, null::text, a.name, a.birth, a.phone
+  from applicants a, jsonb_array_elements(p_candidates) c
+  where a.type = 'individual'
+    and a.name = c->>'name'
+    and regexp_replace(a.birth, '\D', '', 'g') = regexp_replace(c->>'birth', '\D', '', 'g')
+    and regexp_replace(a.phone, '\D', '', 'g') = regexp_replace(c->>'phone', '\D', '', 'g')
+
+  union all
+
+  select a.type, a.team_name, m->>'name', m->>'birth', m->>'phone'
+  from applicants a, jsonb_array_elements(a.members) m, jsonb_array_elements(p_candidates) c
+  where a.type in ('group','family')
+    and m->>'name' = c->>'name'
+    and regexp_replace(m->>'birth', '\D', '', 'g') = regexp_replace(c->>'birth', '\D', '', 'g')
+    and regexp_replace(m->>'phone', '\D', '', 'g') = regexp_replace(c->>'phone', '\D', '', 'g');
+$$;
+grant execute on function check_duplicate_applicants(jsonb) to anon;
+
 -- ============================================================
 -- 권한 — RLS 사용 안 함, anon 키에 전체 테이블 읽기/쓰기 허용
 -- ============================================================
