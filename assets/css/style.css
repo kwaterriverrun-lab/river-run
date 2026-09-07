@@ -1442,9 +1442,24 @@ main {
 .modal-body p { margin: 0 0 12px; }
 .modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
 
-.popup-warning { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--danger); background: #FDF2F1; border-radius: var(--r-md); }
-.popup-warning-title { font-weight: 700; color: var(--danger); margin-bottom: 8px; font-size: 14px; }
-.popup-warning p { margin: 0; font-size: 13.5px; color: var(--text); line-height: 1.6; }
+.popup-info-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.popup-info-row:last-child { border-bottom: 0; }
+.popup-info-term { color: var(--text-2); font-weight: 600; flex-shrink: 0; }
+.popup-info-desc { color: var(--text); text-align: right; }
+
+.popup-warning { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--danger); background: #FDF2F1; border-radius: var(--r-md); }
+.popup-warning-title { font-weight: 700; color: var(--danger); margin-bottom: 6px; font-size: 13.5px; }
+.popup-warning p { margin: 0; font-size: 13px; color: var(--text); line-height: 1.55; }
+
+.home-popup { max-width: 480px; }
+.home-popup .modal-head { padding: 16px 20px; }
+.home-popup .modal-head h3 { font-size: 16px; line-height: 1.4; }
+.home-popup .modal-body { padding: 18px 20px; }
+.home-popup .popup-info-row { padding: 7px 0; font-size: 13.5px; }
+.home-popup .popup-warning { padding: 11px 13px; margin-top: 12px; }
+.home-popup .popup-warning-title { font-size: 13px; margin-bottom: 5px; }
+.home-popup .popup-warning p { font-size: 12.5px; line-height: 1.5; }
+.home-popup .modal-foot { padding: 12px 20px; }
 
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .dup-table { font-size: 13px; }
@@ -2621,4 +2636,14 @@ main {
   .modal-foot .btn { width: 100%; }
   .table-scroll { display: none; }
   .dup-cards { display: block; }
+
+  /* Home deposit-notice popup — tighter than the default modal spacing */
+  .home-popup .modal-head { padding: 12px 14px; }
+  .home-popup .modal-head h3 { font-size: 14.5px; line-height: 1.4; }
+  .home-popup .modal-body { padding: 14px; }
+  .home-popup .popup-info-row { padding: 7px 0; font-size: 12.5px; gap: 8px; }
+  .home-popup .popup-warning { padding: 10px 12px; margin-top: 12px; }
+  .home-popup .popup-warning-title { font-size: 12.5px; margin-bottom: 5px; }
+  .home-popup .popup-warning p { font-size: 12px; line-height: 1.5; }
+  .home-popup .modal-foot { padding: 10px 14px; gap: 6px; }
 }

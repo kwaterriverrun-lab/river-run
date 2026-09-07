@@ -830,21 +830,21 @@
     const modal = document.createElement('div');
     modal.className = 'modal-overlay show';
     modal.innerHTML = `
-      <div class="modal">
+      <div class="modal home-popup">
         <div class="modal-head">
           <h3>River Run(리버런) 10km 최종 참가 확정을 위한 입금 안내</h3>
           <button class="modal-close" aria-label="닫기">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="dl">
-            <div class="dl-row"><div class="dl-term">입금 기한</div><div class="dl-desc"><strong>2026년 9월 8일(화요일) 09:00</strong>까지</div></div>
-            <div class="dl-row"><div class="dl-term">참가비</div><div class="dl-desc">15,000원</div></div>
-            <div class="dl-row"><div class="dl-term">계좌</div><div class="dl-desc">국민은행 642201-04-042162<br>예금주 케이워터운영관리(주)</div></div>
+          <div class="popup-info">
+            <div class="popup-info-row"><span class="popup-info-term">입금 기한</span><span class="popup-info-desc"><strong>2026년 9월 8일(화)</strong> 09:00까지</span></div>
+            <div class="popup-info-row"><span class="popup-info-term">참가비</span><span class="popup-info-desc">15,000원</span></div>
+            <div class="popup-info-row"><span class="popup-info-term">계좌</span><span class="popup-info-desc">국민은행 642201-04-042162<br>예금주 케이워터운영관리(주)</span></div>
           </div>
           <div class="popup-warning">
             <div class="popup-warning-title">⚠️ 미입금 시 참가 취소 안내</div>
             <p>지정된 기한 내에 참가비 입금이 확인되지 않을 경우, 참가 신청이 자동으로 취소 처리됨을 알려드립니다.</p>
-            <p style="margin-top:8px;">이는 참가를 희망하시는 대기자분들께 기회를 드리기 위한 부득이한 조치이오니 너른 양해를 부탁드립니다.</p>
+            <p style="margin-top:6px;">이는 참가를 희망하시는 대기자분들께 기회를 드리기 위한 부득이한 조치이오니 너른 양해를 부탁드립니다.</p>
           </div>
         </div>
         <div class="modal-foot">
