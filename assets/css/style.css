@@ -1442,6 +1442,10 @@ main {
 .modal-body p { margin: 0 0 12px; }
 .modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
 
+.popup-warning { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--danger); background: #FDF2F1; border-radius: var(--r-md); }
+.popup-warning-title { font-weight: 700; color: var(--danger); margin-bottom: 8px; font-size: 14px; }
+.popup-warning p { margin: 0; font-size: 13.5px; color: var(--text); line-height: 1.6; }
+
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .dup-table { font-size: 13px; }
 .dup-table thead th, .dup-table tbody td { padding: 8px 10px; }
