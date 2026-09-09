@@ -832,12 +832,12 @@
     modal.innerHTML = `
       <div class="modal home-popup">
         <div class="modal-head">
-          <h3>River Run(리버런) 10km 최종 참가 확정을 위한 입금 안내</h3>
+          <h3>River Run(리버런) 최종 참가 확정을 위한 입금 안내</h3>
           <button class="modal-close" aria-label="닫기">&times;</button>
         </div>
         <div class="modal-body">
           <div class="popup-info">
-            <div class="popup-info-row"><span class="popup-info-term">입금 기한</span><span class="popup-info-desc"><strong>2026년 9월 8일(화)</strong> 16:00까지</span></div>
+            <div class="popup-info-row"><span class="popup-info-term">입금 기한</span><span class="popup-info-desc">참가신청 완료 후 <strong>신청 당일까지</strong> 입금 완료</span></div>
             <div class="popup-info-row"><span class="popup-info-term">참가비</span><span class="popup-info-desc">15,000원</span></div>
             <div class="popup-info-row"><span class="popup-info-term">계좌</span><span class="popup-info-desc">국민은행 642201-04-042162<br>예금주 케이워터운영관리(주)</span></div>
           </div>
