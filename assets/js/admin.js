@@ -97,7 +97,14 @@ function adminDashboard() {
   const totalGroups = S.applicants.filter(a => a.type === 'group').length;
   const totalMembers = S.applicants.reduce((sum, a) =>
     sum + (a.type === 'individual' ? 1 : (a.members || []).length), 0);
-  const totalRevenue = totalMembers * (S.event.fee || 0);
+
+  const paidApplicants = S.applicants.filter(a => a.paymentStatus === 'paid');
+  const paidCount = paidApplicants.length;
+  const paidMembers = paidApplicants.reduce((sum, a) =>
+    sum + (a.type === 'individual' ? 1 : (a.members || []).length), 0);
+  const paidIndividual = paidApplicants.filter(a => a.type === 'individual').length;
+  const paidFamily = paidApplicants.filter(a => a.type === 'family').length;
+  const paidGroup = paidApplicants.filter(a => a.type === 'group').length;
 
   const paceTotal = S.paceGroups.reduce((s, p) => s + p.applied, 0);
   const paceCards = S.paceGroups.map(p => {
@@ -132,9 +139,9 @@ function adminDashboard() {
         <div class="stat-card-meta">모집 정원 ${S.event.maxCapacity}명</div>
       </div>
       <div class="stat-card">
-        <div class="stat-card-label">누적 참가비</div>
-        <div class="stat-card-value">${(totalRevenue/10000).toFixed(0)}<span class="stat-card-unit">만원</span></div>
-        <div class="stat-card-meta">${RR_FMT.won(totalRevenue)}</div>
+        <div class="stat-card-label">입금확인</div>
+        <div class="stat-card-value" style="font-size:20px;">${paidCount}건 / ${paidMembers}명</div>
+        <div class="stat-card-meta">개인 ${paidIndividual} · 가족 ${paidFamily} · 단체 ${paidGroup}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card-label">대회까지</div>
@@ -215,6 +222,11 @@ function adminApplicants() {
             <option value="runner">Runner</option>
             <option value="starter">Starter</option>
           </select>
+          <select class="toolbar-search" id="admFilterPayment" style="max-width:120px;">
+            <option value="">전체 입금상태</option>
+            <option value="pending">입금대기</option>
+            <option value="paid">입금확인</option>
+          </select>
         </div>
       </div>
       <div class="admin-panel-body p0" style="overflow-x:auto;">
@@ -237,6 +249,7 @@ function adminApplicants() {
         </table>
         <div id="admApplicantEmpty" class="empty hidden">검색 결과가 없습니다.</div>
       </div>
+      <div class="admin-pagination" id="admApplicantPagination"></div>
     </div>
   `;
   return adminShell('applicants', content);

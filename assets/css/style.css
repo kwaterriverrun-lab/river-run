@@ -1767,6 +1767,17 @@ main {
 .admin-panel-body { padding: 24px; }
 .admin-panel-body.p0 { padding: 0; }
 
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 14px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.admin-pagination-info { font-size: 13px; color: var(--text-2); }
+
 /* Admin table */
 .admin-table {
   width: 100%;
@@ -2527,6 +2538,11 @@ main {
   .admin-table { font-size: 13px; min-width: 460px; }
   .admin-table thead th, .admin-table tbody td { padding: 10px 12px; }
   .admin-panel-body.p0 { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .toolbar-search { flex: 1 1 140px; min-width: 0; padding: 7px 10px; font-size: 13px; min-height: 34px; }
+  .admin-pagination { padding: 10px; gap: 8px; }
+  .admin-pagination-info { font-size: 12px; }
+  .admin-pagination .btn-sm { padding: 6px 10px; font-size: 12.5px; min-height: 30px; }
 
   .pace-row { grid-template-columns: 90px 1fr; gap: 12px; }
   .pace-meta, .pace-input { grid-column: 2 / 3; text-align: left; }

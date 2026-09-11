@@ -1048,15 +1048,18 @@
 
   // ---- Applicants ----
   function bindAdminApplicants() {
-    const state = { search: '', type: '', pace: '' };
+    const PAGE_SIZE = 20;
+    const state = { search: '', type: '', pace: '', payment: '', page: 1 };
     const tbody = document.getElementById('admApplicantTbody');
     const emptyEl = document.getElementById('admApplicantEmpty');
+    const paginationEl = document.getElementById('admApplicantPagination');
 
     function draw() {
       const q = state.search.trim().toLowerCase();
-      const list = RR_STORE.state.applicants.filter(a => {
+      const filtered = RR_STORE.state.applicants.filter(a => {
         if (state.type && a.type !== state.type) return false;
         if (state.pace && a.pace !== state.pace) return false;
+        if (state.payment && (a.paymentStatus || 'pending') !== state.payment) return false;
         if (!q) return true;
         const name = a.type === 'individual' ? a.name : (a.teamName + ' ' + a.leaderName);
         const qDigits = q.replace(/\D/g, '');
@@ -1065,12 +1068,18 @@
             || phoneMatch
             || (a.id || '').toLowerCase().includes(q);
       });
-      if (!list.length) {
-        tbody.innerHTML = ''; emptyEl.classList.remove('hidden');
+      if (!filtered.length) {
+        tbody.innerHTML = ''; emptyEl.classList.remove('hidden'); paginationEl.innerHTML = '';
         return;
       }
       emptyEl.classList.add('hidden');
-      tbody.innerHTML = list.slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).map(a => {
+      const sorted = filtered.slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+      const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+      if (state.page > totalPages) state.page = totalPages;
+      const start = (state.page - 1) * PAGE_SIZE;
+      const list = sorted.slice(start, start + PAGE_SIZE);
+      drawPagination(sorted.length, totalPages);
+      tbody.innerHTML = list.map(a => {
         const name = a.type === 'individual' ? a.name : (a.teamName + ' (' + a.leaderName + ')');
         const count = a.type === 'individual' ? 1 : (a.members || []).length;
         const pace = (RR_STORE.state.paceGroups.find(p => p.id === a.pace) || {}).label || '-';
@@ -1097,6 +1106,19 @@
         `;
       }).join('');
       bindRowActions();
+    }
+
+    function drawPagination(total, totalPages) {
+      if (totalPages <= 1) { paginationEl.innerHTML = ''; return; }
+      paginationEl.innerHTML = `
+        <button class="btn btn-ghost btn-sm" id="admPagePrev" ${state.page <= 1 ? 'disabled' : ''}>‹ 이전</button>
+        <span class="admin-pagination-info">${state.page} / ${totalPages}페이지 (총 ${total}건)</span>
+        <button class="btn btn-ghost btn-sm" id="admPageNext" ${state.page >= totalPages ? 'disabled' : ''}>다음 ›</button>
+      `;
+      const prevBtn = document.getElementById('admPagePrev');
+      const nextBtn = document.getElementById('admPageNext');
+      if (prevBtn) prevBtn.addEventListener('click', () => { state.page--; draw(); });
+      if (nextBtn) nextBtn.addEventListener('click', () => { state.page++; draw(); });
     }
 
     function bindRowActions() {
@@ -1268,9 +1290,10 @@
       });
     }
 
-    document.getElementById('admSearchInp').addEventListener('input', (e) => { state.search = e.target.value; draw(); });
-    document.getElementById('admFilterType').addEventListener('change', (e) => { state.type = e.target.value; draw(); });
-    document.getElementById('admFilterPace').addEventListener('change', (e) => { state.pace = e.target.value; draw(); });
+    document.getElementById('admSearchInp').addEventListener('input', (e) => { state.search = e.target.value; state.page = 1; draw(); });
+    document.getElementById('admFilterType').addEventListener('change', (e) => { state.type = e.target.value; state.page = 1; draw(); });
+    document.getElementById('admFilterPace').addEventListener('change', (e) => { state.pace = e.target.value; state.page = 1; draw(); });
+    document.getElementById('admFilterPayment').addEventListener('change', (e) => { state.payment = e.target.value; state.page = 1; draw(); });
     document.getElementById('admCheckAll').addEventListener('change', (e) => {
       document.querySelectorAll('[data-app-check]').forEach(cb => cb.checked = e.target.checked);
     });
