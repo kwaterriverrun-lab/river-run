@@ -92,19 +92,26 @@ function adminShell(tab, contentHTML) {
 // =====================================================================
 function adminDashboard() {
   const S = RR_STORE.state;
-  const totalIndividuals = S.applicants.filter(a => a.type === 'individual').length;
-  const totalFamily = S.applicants.filter(a => a.type === 'family').length;
-  const totalGroups = S.applicants.filter(a => a.type === 'group').length;
-  const totalMembers = S.applicants.reduce((sum, a) =>
-    sum + (a.type === 'individual' ? 1 : (a.members || []).length), 0);
+  const memberCount = (a) => a.type === 'individual' ? 1 : (a.members || []).length;
+  const typeCounts = (list) => ({
+    individual: list.filter(a => a.type === 'individual').length,
+    family: list.filter(a => a.type === 'family').length,
+    group: list.filter(a => a.type === 'group').length
+  });
 
+  const totalCount = S.applicants.length;
+  const totalMembers = S.applicants.reduce((sum, a) => sum + memberCount(a), 0);
+  const totalByType = typeCounts(S.applicants);
+
+  // 입금대기는 '입금확인'이 아닌 모든 신청 — pending = total - paid가 항상 성립하도록 보장
   const paidApplicants = S.applicants.filter(a => a.paymentStatus === 'paid');
+  const pendingApplicants = S.applicants.filter(a => a.paymentStatus !== 'paid');
   const paidCount = paidApplicants.length;
-  const paidMembers = paidApplicants.reduce((sum, a) =>
-    sum + (a.type === 'individual' ? 1 : (a.members || []).length), 0);
-  const paidIndividual = paidApplicants.filter(a => a.type === 'individual').length;
-  const paidFamily = paidApplicants.filter(a => a.type === 'family').length;
-  const paidGroup = paidApplicants.filter(a => a.type === 'group').length;
+  const paidMembers = paidApplicants.reduce((sum, a) => sum + memberCount(a), 0);
+  const paidByType = typeCounts(paidApplicants);
+  const pendingCount = pendingApplicants.length;
+  const pendingMembers = pendingApplicants.reduce((sum, a) => sum + memberCount(a), 0);
+  const pendingByType = typeCounts(pendingApplicants);
 
   const paceTotal = S.paceGroups.reduce((s, p) => s + p.applied, 0);
   const paceCards = S.paceGroups.map(p => {
@@ -129,19 +136,19 @@ function adminDashboard() {
 
     <div class="stat-grid">
       <div class="stat-card">
-        <div class="stat-card-label">총 신청 건수</div>
-        <div class="stat-card-value">${S.applicants.length}<span class="stat-card-unit">건</span></div>
-        <div class="stat-card-meta">개인 ${totalIndividuals} · 가족 ${totalFamily} · 단체 ${totalGroups}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-label">총 참가 인원</div>
-        <div class="stat-card-value">${totalMembers}<span class="stat-card-unit">명</span></div>
-        <div class="stat-card-meta">모집 정원 ${S.event.maxCapacity}명</div>
+        <div class="stat-card-label">총 신청</div>
+        <div class="stat-card-value" style="font-size:20px;">${totalCount}건 / ${totalMembers}명</div>
+        <div class="stat-card-meta">개인 ${totalByType.individual} · 가족 ${totalByType.family} · 단체 ${totalByType.group}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card-label">입금확인</div>
         <div class="stat-card-value" style="font-size:20px;">${paidCount}건 / ${paidMembers}명</div>
-        <div class="stat-card-meta">개인 ${paidIndividual} · 가족 ${paidFamily} · 단체 ${paidGroup}</div>
+        <div class="stat-card-meta">개인 ${paidByType.individual} · 가족 ${paidByType.family} · 단체 ${paidByType.group}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">입금대기</div>
+        <div class="stat-card-value" style="font-size:20px;">${pendingCount}건 / ${pendingMembers}명</div>
+        <div class="stat-card-meta">개인 ${pendingByType.individual} · 가족 ${pendingByType.family} · 단체 ${pendingByType.group}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card-label">대회까지</div>
