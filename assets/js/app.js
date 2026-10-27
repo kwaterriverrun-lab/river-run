@@ -45,7 +45,6 @@
     '/admin/applicants': () => RR_ADMIN.adminApplicants(),
     '/admin/cancelled':  () => RR_ADMIN.adminCancelled(),
     '/admin/notice':     () => RR_ADMIN.adminNotice(),
-    '/admin/gallery':    () => RR_ADMIN.adminGallery(),
     '/admin/event':      () => RR_ADMIN.adminEvent(),
   };
 
@@ -171,7 +170,6 @@
     else if (tabKey === 'applicants') bindAdminApplicants();
     else if (tabKey === 'cancelled') bindAdminCancelled();
     else if (tabKey === 'notice') bindAdminNotice();
-    else if (tabKey === 'gallery') bindAdminGallery();
     else if (tabKey === 'event') bindAdminEvent();
 
   }
@@ -819,51 +817,6 @@
   }
 
   // ================================
-  // Home page deposit-notice popup (hardcoded, dismissible for the day)
-  // ================================
-  const HOME_POPUP_HIDE_KEY = 'rr_home_popup_hide_date';
-  function showHomeNoticePopup() {
-    const todayKST = toKST(new Date()).toISOString().slice(0, 10);
-    try {
-      if (localStorage.getItem(HOME_POPUP_HIDE_KEY) === todayKST) return;
-    } catch (e) {}
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay show';
-    modal.innerHTML = `
-      <div class="modal home-popup">
-        <div class="modal-head">
-          <h3>River Run(리버런) 최종 참가 확정을 위한 입금 안내</h3>
-          <button class="modal-close" aria-label="닫기">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="popup-info">
-            <div class="popup-info-row"><span class="popup-info-term">입금 기한</span><span class="popup-info-desc">참가신청 완료 후 <strong>신청 당일까지</strong> 입금 완료</span></div>
-            <div class="popup-info-row"><span class="popup-info-term">참가비</span><span class="popup-info-desc">15,000원</span></div>
-            <div class="popup-info-row"><span class="popup-info-term">계좌</span><span class="popup-info-desc">국민은행 642201-04-042162<br>예금주 케이워터운영관리(주)</span></div>
-          </div>
-          <div class="popup-warning">
-            <div class="popup-warning-title">⚠️ 미입금 시 참가 취소 안내</div>
-            <p>지정된 기한 내에 참가비 입금이 확인되지 않을 경우, 참가 신청이 자동으로 취소 처리됨을 알려드립니다.</p>
-            <p style="margin-top:6px;">이는 참가를 희망하시는 대기자분들께 기회를 드리기 위한 부득이한 조치이오니 너른 양해를 부탁드립니다.</p>
-          </div>
-        </div>
-        <div class="modal-foot">
-          <button class="btn btn-ghost modal-close">닫기</button>
-          <button class="btn btn-primary" id="homePopupHideToday">오늘 하루 보지 않기</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    const close = () => modal.remove();
-    modal.querySelectorAll('.modal-close').forEach(x => x.addEventListener('click', close));
-    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
-    modal.querySelector('#homePopupHideToday').addEventListener('click', () => {
-      try { localStorage.setItem(HOME_POPUP_HIDE_KEY, todayKST); } catch (e) {}
-      close();
-    });
-  }
-
-  // ================================
   // Page-specific bindings
   // ================================
   function bindPageHandlers(path) {
@@ -874,7 +827,6 @@
       tickDday('ddayCount', true);
       ddayTimer = setInterval(() => tickDday('ddayCount', true), 1000);
       bindHeroSlideshow();
-      showHomeNoticePopup();
     }
 
     if (path === '/apply') {
@@ -889,7 +841,210 @@
     if (path === '/lookup') bindLookup();
     if (path === '/notice') bindNoticeList();
     if (path === '/event') bindEventSubnav();
+    if (path === '/gallery') bindGallery();
     bindImageZoom();
+  }
+
+  // ================================
+  // 갤러리 — assets/gallery/manifest.json 을 읽어 썸네일을 나눠서 표시
+  // (사진은 Vercel 정적 파일, Supabase 사용 안 함)
+  // ================================
+  // 한 페이지 장수: 12 / 24 / 48 중 선택 (한 줄 3장 기준). 선택값은 이 브라우저에 기억
+  const GALLERY_SIZES = [12, 24, 48];
+  const GALLERY_SIZE_KEY = 'rr_gallery_page_size';
+  let galleryManifest = null;
+  async function bindGallery() {
+    const grid = document.getElementById('galleryGrid');
+    const status = document.getElementById('galleryStatus');
+    const pager = document.getElementById('galleryPagination');
+    const toolbar = document.getElementById('galleryToolbar');
+    if (!grid) return;
+
+    let pageSize = 12;
+    try {
+      const saved = +localStorage.getItem(GALLERY_SIZE_KEY);
+      if (GALLERY_SIZES.includes(saved)) pageSize = saved;
+    } catch (e) {}
+
+    // 그리드 내용이 페이지마다 바뀌므로 그리드에 위임해서 확대 처리.
+    // 뷰어에서 다른 페이지의 사진까지 넘겨 본 뒤 닫으면 그 사진이 있는 페이지로 이동
+    grid.addEventListener('click', (e) => {
+      const item = e.target.closest('.gallery-item');
+      if (!item) return;
+      openGalleryViewer(galleryManifest, +item.dataset.idx, (lastIdx) => {
+        const p = Math.floor(lastIdx / pageSize) + 1;
+        if (p !== page && grid.isConnected) goPage(p);
+      });
+    });
+    // 장수를 바꾸면 지금 보던 페이지의 첫 사진이 들어 있는 페이지로 이동
+    toolbar.addEventListener('click', (e) => {
+      const b = e.target.closest('.gallery-size-btn');
+      if (!b || +b.dataset.size === pageSize) return;
+      const firstIdx = (page - 1) * pageSize;
+      pageSize = +b.dataset.size;
+      try { localStorage.setItem(GALLERY_SIZE_KEY, String(pageSize)); } catch (e) {}
+      totalPages = Math.ceil(galleryManifest.length / pageSize);
+      goPage(Math.floor(firstIdx / pageSize) + 1, false);
+    });
+    pager.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-page]');
+      if (b && !b.disabled) goPage(+b.dataset.page);
+    });
+
+    if (!galleryManifest) {
+      try {
+        const res = await fetch('/assets/gallery/manifest.json', { cache: 'no-cache' });
+        galleryManifest = res.ok ? (await res.json()).items || [] : [];
+      } catch (e) {
+        console.error('gallery manifest load failed', e);
+        galleryManifest = [];
+      }
+    }
+    if (!grid.isConnected) return; // 불러오는 사이 다른 페이지로 이동함
+    const items = galleryManifest;
+    if (!items.length) { status.textContent = '등록된 이미지가 없습니다.'; return; }
+    status.hidden = true;
+    toolbar.hidden = false;
+    document.getElementById('galleryTotal').textContent = `총 ${items.length.toLocaleString()}장`;
+
+    let totalPages = Math.ceil(items.length / pageSize);
+    // 현재 페이지는 주소(?page=N)에 남겨서 새로고침해도 유지
+    let page = Math.min(Math.max(parseInt(new URLSearchParams(location.search).get('page'), 10) || 1, 1), totalPages);
+
+    function goPage(p, scroll = true) {
+      page = p;
+      const start = (page - 1) * pageSize;
+      grid.innerHTML = RR_PAGES.galleryItemsHtml(items.slice(start, start + pageSize), start);
+      pager.innerHTML = galleryPaginationHtml(page, totalPages);
+      toolbar.querySelectorAll('.gallery-size-btn').forEach(b =>
+        b.classList.toggle('is-current', +b.dataset.size === pageSize));
+      history.replaceState({}, '', page > 1 ? `/gallery?page=${page}` : '/gallery');
+      if (scroll) {
+        const headerH = document.getElementById('header').offsetHeight || 0;
+        window.scrollTo({ top: grid.getBoundingClientRect().top + window.scrollY - headerH - 16, behavior: 'instant' });
+      }
+    }
+    goPage(page, false);
+  }
+
+  // ‹ 1 … 5 6 [7] 8 9 … 28 › — 현재 페이지 앞뒤 2개(모바일 1개) + 처음/끝
+  function galleryPaginationHtml(page, totalPages) {
+    if (totalPages <= 1) return '';
+    const near = window.matchMedia('(max-width: 560px)').matches ? 1 : 2;
+    const pages = [];
+    for (let p = 1; p <= totalPages; p++) {
+      if (p === 1 || p === totalPages || Math.abs(p - page) <= near) pages.push(p);
+      else if (pages[pages.length - 1] !== '…') pages.push('…');
+    }
+    const btn = (p, label, aria, extra = '') =>
+      `<button type="button" class="gallery-page${extra}" data-page="${p}" aria-label="${aria}"${p < 1 || p > totalPages ? ' disabled' : ''}>${label}</button>`;
+    return btn(page - 1, '&#8249;', '이전 페이지', ' is-arrow')
+      + pages.map(p => p === '…'
+          ? '<span class="gallery-page-gap">…</span>'
+          : btn(p, p, `${p}페이지`, p === page ? ' is-current' : '')).join('')
+      + btn(page + 1, '&#8250;', '다음 페이지', ' is-arrow');
+  }
+
+  // ================================
+  // 갤러리 확대 뷰어 — 좌우 이동(버튼 · ←→ 키 · 스와이프) + 앞뒤 미리보기 줄 + JPG 다운로드
+  // 미리보기는 앞뒤 3장씩(PC) / 2장씩(모바일, CSS로 바깥 1장씩 숨김)
+  // onClose(마지막으로 본 사진 위치): 갤러리 페이지를 그 사진 쪽으로 맞추는 데 사용
+  // ================================
+  const GV_STRIP_RANGE = 3;
+  function openGalleryViewer(items, startIdx, onClose) {
+    let idx = startIdx;
+    const box = document.createElement('div');
+    box.className = 'gviewer';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.innerHTML = `
+      <div class="gviewer-top">
+        <span class="gviewer-counter"></span>
+        <button type="button" class="gviewer-close" aria-label="닫기">&times;</button>
+      </div>
+      <div class="gviewer-stage">
+        <img class="gviewer-img" alt="">
+        <button type="button" class="gviewer-nav prev" aria-label="이전 사진">&#8249;</button>
+        <button type="button" class="gviewer-nav next" aria-label="다음 사진">&#8250;</button>
+      </div>
+      <div class="gviewer-strip"></div>
+      <div class="gviewer-actions">
+        <button type="button" class="btn btn-primary gviewer-download">사진 다운로드</button>
+      </div>
+    `;
+    const img = box.querySelector('.gviewer-img');
+    const counter = box.querySelector('.gviewer-counter');
+    const strip = box.querySelector('.gviewer-strip');
+    const prevBtn = box.querySelector('.prev');
+    const nextBtn = box.querySelector('.next');
+    const dlBtn = box.querySelector('.gviewer-download');
+    const fullSrc = (i) => `/assets/gallery/full/${items[i].f}`;
+
+    const show = (i) => {
+      if (i < 0 || i >= items.length) return;
+      idx = i;
+      img.classList.add('is-loading');
+      img.src = fullSrc(idx);
+      counter.textContent = `${idx + 1} / ${items.length}`;
+      prevBtn.disabled = idx === 0;
+      nextBtn.disabled = idx === items.length - 1;
+      let html = '';
+      for (let off = -GV_STRIP_RANGE; off <= GV_STRIP_RANGE; off++) {
+        const j = idx + off;
+        html += (j < 0 || j >= items.length)
+          ? `<span class="gviewer-thumb is-empty" data-off="${off}"></span>`
+          : `<button type="button" class="gviewer-thumb${off === 0 ? ' is-current' : ''}" data-off="${off}" data-idx="${j}" aria-label="${j + 1}번째 사진"><img src="/assets/gallery/thumb/${items[j].f}" alt=""></button>`;
+      }
+      strip.innerHTML = html;
+      // 바로 앞뒤 사진은 미리 받아둬서 넘길 때 끊기지 않게
+      [idx - 1, idx + 1].forEach(j => { if (j >= 0 && j < items.length) new Image().src = fullSrc(j); });
+    };
+    img.addEventListener('load', () => img.classList.remove('is-loading'));
+
+    prevBtn.addEventListener('click', () => show(idx - 1));
+    nextBtn.addEventListener('click', () => show(idx + 1));
+    strip.addEventListener('click', (e) => {
+      const t = e.target.closest('.gviewer-thumb[data-idx]');
+      if (t) show(+t.dataset.idx);
+    });
+    dlBtn.addEventListener('click', () => downloadAsJpg(img, dlBtn));
+
+    // 스와이프 (가로 이동이 세로보다 크고 50px 이상일 때만)
+    let touchX = null, touchY = null;
+    const stage = box.querySelector('.gviewer-stage');
+    stage.addEventListener('touchstart', (e) => {
+      touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
+    }, { passive: true });
+    stage.addEventListener('touchend', (e) => {
+      if (touchX === null) return;
+      const dx = e.changedTouches[0].clientX - touchX;
+      const dy = e.changedTouches[0].clientY - touchY;
+      touchX = null;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) show(dx < 0 ? idx + 1 : idx - 1);
+    });
+
+    const close = () => {
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('popstate', close);
+      document.body.style.overflow = '';
+      box.classList.remove('show');
+      setTimeout(() => box.remove(), 200);
+      if (onClose) onClose(idx);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowLeft') show(idx - 1);
+      else if (e.key === 'ArrowRight') show(idx + 1);
+    };
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('popstate', close); // 뷰어가 열린 채 뒤로가기로 페이지가 바뀌는 경우
+    box.querySelector('.gviewer-close').addEventListener('click', close);
+    stage.addEventListener('click', (e) => { if (e.target === stage) close(); });
+
+    show(idx);
+    document.body.appendChild(box);
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => box.classList.add('show'));
   }
 
   // ================================
@@ -1003,6 +1158,35 @@
     box.addEventListener('click', (e) => {
       if (e.target === box || e.target.classList.contains('lightbox-inner') || e.target.classList.contains('lightbox-close')) close();
     });
+  }
+
+  // 갤러리 사진은 WebP로 저장돼 있어서, 다운로드할 때 브라우저에서 JPG로 바꿔 저장
+  // 파일명: 20261017__0004-016e31b4.webp → 리버런_20261017_0004.jpg
+  async function downloadAsJpg(img, btn) {
+    btn.disabled = true;
+    try {
+      if (!img.complete) await img.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      const blob = await new Promise((resolve, reject) =>
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('JPG 변환 실패')), 'image/jpeg', 0.92));
+      const base = decodeURIComponent(img.src.split('/').pop())
+        .replace(/\.[^.]+$/, '').replace(/-[0-9a-f]{8}$/, '').replace(/_+/g, '_');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `리버런_${base}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    } catch (e) {
+      console.error(e);
+      toast('다운로드에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // ============================================================
@@ -1524,35 +1708,6 @@
     });
   }
 
-  // ---- Gallery ----
-  function bindAdminGallery() {
-    document.querySelectorAll('[data-gal-del]').forEach(b => {
-      b.addEventListener('click', async () => {
-        if (!confirm('이미지를 삭제하시겠습니까?')) return;
-        try {
-          await RR_STORE.deleteGalleryImage(+b.dataset.galDel);
-          toast('삭제되었습니다.');
-          render();
-        } catch (e) {
-          console.error(e);
-          toast('삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
-        }
-      });
-    });
-    document.getElementById('admGalUpload').addEventListener('change', async (e) => {
-      const files = Array.from(e.target.files || []);
-      if (!files.length) return;
-      try {
-        await Promise.all(files.map(file => RR_STORE.uploadGalleryImage(file)));
-        toast(`${files.length}장의 이미지가 업로드되었습니다.`);
-        render();
-      } catch (err) {
-        console.error(err);
-        toast('업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.');
-      }
-    });
-  }
-
   // ---- Event info ----
   function bindAdminEvent() {
     document.getElementById('admEventSave').addEventListener('click', async () => {
@@ -1605,8 +1760,7 @@
     await Promise.all([
       RR_STORE.loadEventFromSupabase(),
       RR_STORE.loadPaceGroupsFromSupabase(),
-      RR_STORE.loadNoticesFromSupabase(),
-      RR_STORE.loadGalleryFromSupabase()
+      RR_STORE.loadNoticesFromSupabase()
     ]);
     render();
   });

@@ -259,7 +259,7 @@
 
 #### 7. 갤러리 (`/gallery`)
 
-**Purpose**: 대회 사진 그리드. 관리자가 업로드한 이미지가 그대로 표시됨 (Supabase `gallery` 테이블/버킷, 현재 비어있는 상태 — 로컬 `assets/img/gallery-*.jpg`는 화면에 안 쓰이는 초기 샘플 파일)
+**Purpose**: 대회 사진 그리드. 저장소의 `assets/gallery/manifest.json`을 페이지 진입 시 불러와 썸네일(`thumb/`)을 한 줄 3장, 한 페이지 12/24/48장(선택)씩 페이지 번호로 나눠 표시하고, 클릭 시 원본(`full/`)을 확대. 사진은 `tools/gallery/build-gallery.mjs`로 생성 (Supabase 사용 안 함 — PROJECT_NOTES 참고)
 
 **Layout**:
 - 3열 그리드 (`repeat(3, 1fr)`, gap 16px)
@@ -345,14 +345,6 @@
 - 작성/수정 모달: 구분(select: 중요/안내/이벤트) · 등록일(date) · 상단 고정(checkbox) · 제목 · 내용(textarea 10 rows) · **첨부 이미지**(업로드 시 미리보기 + 제거 가능)
 - 이미지 교체·제거·공지 삭제 시 Storage의 이전 파일도 함께 정리됨 (고아 파일 안 남음)
 
-#### Admin 5 · 갤러리 (`/admin/gallery`)
-
-- 4열 그리드 (모바일 2열)
-- 좌상단 업로드 버튼 (dashed border + 플러스 아이콘, `<input type="file" multiple>`)
-- 각 이미지 우상단 삭제 버튼 (rgba(0,0,0,0.6) 원형)
-- 업로드 시 클라이언트에서 자동으로 리사이즈·압축(최대 1600px, JPEG) 후 Supabase Storage(`gallery` 버킷)에 저장, DB에는 공개 URL만 저장
-- 삭제 시 DB 행과 Storage 파일이 함께 삭제됨
-
 #### Admin 6 · 행사 정보 (`/admin/event`)
 
 - 기본 정보 블록: 대회명 · 대회 일시(datetime-local) · 종목·거리 · 행사 장소 · 참가비(number) · 주최 · 주관 · **모집 정원(전체)**
@@ -432,13 +424,12 @@ RR_STORE.state = {
                  applyOpen, applyClose, maxCapacity, bankName, accountNumber, accountHolder },
   paceGroups:  [ { id, label, desc, applied } ],   // 정원 없음, 통계 전용
   notices:     [ { id, badge, badgeLabel, title, body, imageUrl, date, pinned } ],
-  gallery:     [ { id, src, caption } ],
   applicants:  [ /* 관리자 화면 진입 시에만 채워짐 — 공개 페이지에서는 비어있음 */ ]
 }
 ```
 
 로딩 시점:
-- `event` / `paceGroups` / `notices` / `gallery` → 모든 페이지 최초 로딩 시 함께 불러옴
+- `event` / `paceGroups` / `notices` → 모든 페이지 최초 로딩 시 함께 불러옴 (갤러리는 `/gallery` 진입 시 `manifest.json`만 별도로 불러옴)
 - `applicants` → `/admin/dashboard`, `/admin/applicants` 진입 시에만 전체 로드. 공개 페이지(참가신청·접수확인)는 RPC(`total_applied_count`, `lookup_applicant`)로 필요한 값만 서버에서 계산해 받음 — 전체 신청자 개인정보가 불필요하게 브라우저에 실리지 않도록 하기 위함
 
 **Apply State** — `RR_APP.applyState` (메모리, 페이지 이탈 시 리셋)
@@ -606,13 +597,7 @@ Header height: 76px desktop / 64px mobile
 - `ms2-medal.jpg` — 여성 3인 메달
 - `ms3-highfive.jpg` — 하이파이브
 
-**갤러리 (6장, 1024×768, AI 생성 · 대회 종료 후 실제 사진으로 교체 예정)**:
-- `gallery-01-start.jpg` — 출발선
-- `gallery-02-finish.jpg` — 완주
-- `gallery-03-pacer.jpg` — 페이서 그룹
-- `gallery-04-aid.jpg` — 보급소
-- `gallery-05-medal.jpg` — 메달
-- `gallery-06-family.jpg` — 가족 러닝
+**갤러리**: `assets/gallery/` 아래 별도 관리 (`full/`·`thumb/` WebP + `manifest.json`, `tools/gallery/build-gallery.mjs`로 생성)
 
 ### 지도 이미지 (사용자 제공)
 

@@ -4,7 +4,6 @@ const AdminIcon = {
   dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>',
   users:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   notice:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-  gallery:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
   event:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
   cancelled: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
 };
@@ -14,7 +13,6 @@ const ADMIN_MENU = [
   { key: 'applicants', label: '참가자 관리', icon: AdminIcon.users },
   { key: 'cancelled',  label: '참가 취소 내역',   icon: AdminIcon.cancelled },
   { key: 'notice',     label: '공지사항',    icon: AdminIcon.notice },
-  { key: 'gallery',    label: '갤러리',      icon: AdminIcon.gallery },
   { key: 'event',      label: '행사 정보',   icon: AdminIcon.event }
 ];
 
@@ -402,46 +400,6 @@ function adminNotice() {
 }
 
 // =====================================================================
-// Gallery management
-// =====================================================================
-function adminGallery() {
-  const items = RR_STORE.state.gallery.map(g => `
-    <div class="gallery-admin-item" data-gal-id="${g.id}">
-      <img src="${g.src}" alt="${g.caption}">
-      <button class="gallery-admin-del" data-gal-del="${g.id}" aria-label="삭제">&times;</button>
-    </div>
-  `).join('');
-
-  const content = `
-    <div class="admin-page-head">
-      <div>
-        <h1>갤러리 이미지 관리</h1>
-        <p>갤러리 페이지에 표시될 이미지를 관리합니다. 이미지 파일을 선택하여 업로드하세요.</p>
-      </div>
-    </div>
-
-    <div class="admin-panel">
-      <div class="admin-panel-body">
-        <div class="gallery-admin-grid">
-          <label class="gallery-upload-btn">
-            <div style="text-align:center;">
-              <div style="font-size:24px;line-height:1;margin-bottom:6px;">+</div>
-              <div>이미지 업로드</div>
-              <input type="file" id="admGalUpload" accept="image/*" style="display:none;" multiple>
-            </div>
-          </label>
-          ${items}
-        </div>
-        <div class="form-note" style="margin-top:24px;">
-          <strong>안내</strong> 업로드한 이미지는 Supabase Storage에 저장되며, 삭제 시 파일도 함께 제거됩니다.
-        </div>
-      </div>
-    </div>
-  `;
-  return adminShell('gallery', content);
-}
-
-// =====================================================================
 // Event info management
 // =====================================================================
 function adminEvent() {
@@ -540,4 +498,4 @@ function adminEvent() {
   return adminShell('event', content);
 }
 
-window.RR_ADMIN = { adminLogin, adminDashboard, adminApplicants, adminCancelled, adminNotice, adminGallery, adminEvent };
+window.RR_ADMIN = { adminLogin, adminDashboard, adminApplicants, adminCancelled, adminNotice, adminEvent };

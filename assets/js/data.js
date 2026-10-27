@@ -107,15 +107,6 @@ const DEFAULTS = {
       body: "행사장 내 주차공간이 매우 협소하오니 가급적 대중교통을 이용해 주시기 바랍니다.\n\n[주차장 안내]\n· 행사장: 세종보 주차장 (세종시 세종동 551-190)\n· 인근①: 한솔동 주차장 (세종시 한솔동 961-1)\n· 인근②: 아침뜰근린공원 축구장방면 주차장 (세종시 한솔동 1246)\n· 인근③: 한솔중학교 (세종시 나리로 43)" }
   ],
 
-  gallery: [
-    { id: 1, src: '/assets/img/gallery-01-start.jpg',  caption: '출발선의 열기' },
-    { id: 2, src: '/assets/img/gallery-02-finish.jpg', caption: '완주의 순간' },
-    { id: 3, src: '/assets/img/gallery-03-pacer.jpg',  caption: '함께 달리는 페이스 그룹' },
-    { id: 4, src: '/assets/img/gallery-04-aid.jpg',    caption: '든든한 보급소' },
-    { id: 5, src: '/assets/img/gallery-05-medal.jpg',  caption: '완주 메달' },
-    { id: 6, src: '/assets/img/gallery-06-family.jpg', caption: '가족과 함께한 특별한 하루' }
-  ],
-
   faqs: [
     { id: 1, q: '참가비 환불이 가능한가요?', a: '접수 기간 중에는 환불이 가능하며, 접수 마감 이후에는 환불이 불가합니다. 자세한 사항은 운영사무국(031-999-7813)으로 문의 주세요.' },
     { id: 2, q: '기념품은 언제 배송되나요?', a: '기념품(티셔츠·완주메달·배번호표·친환경 부직포백)은 대회 약 2주 전부터 순차적으로 사전 배송됩니다.' },
@@ -162,7 +153,6 @@ function loadState() {
       paceGroups:  parsed.paceGroups  || DEFAULTS.paceGroups,
       coursePins:  parsed.coursePins  || DEFAULTS.coursePins,
       notices:     parsed.notices     || DEFAULTS.notices,
-      gallery:     parsed.gallery     || DEFAULTS.gallery,
       faqs:        parsed.faqs        || DEFAULTS.faqs,
       applicants:  parsed.applicants  || DEFAULTS.applicants
     };
@@ -268,42 +258,6 @@ window.RR_STORE = {
     if (error) throw error;
     if (existing && existing.imageUrl) await this.deleteNoticeImageByUrl(existing.imageUrl);
     this.state.notices = this.state.notices.filter(n => n.id !== id);
-  },
-  // ---- gallery: Supabase (Storage + table) 연동 ----
-  async loadGalleryFromSupabase() {
-    const { data, error } = await window.RR_SUPABASE.from('gallery').select('*').order('created_at', { ascending: false });
-    if (error) { console.error('gallery load failed', error); return; }
-    this.state.gallery = data.map(g => ({ id: g.id, src: g.src, caption: g.caption }));
-  },
-  async uploadGalleryImage(file) {
-    const blob = await compressImage(file);
-    const caption = file.name.replace(/\.[^.]+$/, '');
-    const path = `${Date.now()}-${caption}.jpg`;
-    const { error: upErr } = await window.RR_SUPABASE.storage.from('gallery')
-      .upload(path, blob, { contentType: 'image/jpeg', cacheControl: '604800' });
-    if (upErr) throw upErr;
-    const { data: pub } = window.RR_SUPABASE.storage.from('gallery').getPublicUrl(path);
-    const { data: row, error } = await window.RR_SUPABASE.from('gallery').insert({ src: pub.publicUrl, caption }).select().single();
-    if (error) throw error;
-    const item = { id: row.id, src: row.src, caption: row.caption };
-    this.state.gallery.push(item);
-    return item;
-  },
-  async deleteGalleryFileByUrl(url) {
-    if (!url) return;
-    const marker = '/gallery/';
-    const idx = url.indexOf(marker);
-    if (idx === -1) return;
-    const path = url.slice(idx + marker.length);
-    const { error } = await window.RR_SUPABASE.storage.from('gallery').remove([path]);
-    if (error) console.error('gallery file cleanup failed', error);
-  },
-  async deleteGalleryImage(id) {
-    const existing = this.state.gallery.find(g => g.id === id);
-    const { error } = await window.RR_SUPABASE.from('gallery').delete().eq('id', id);
-    if (error) throw error;
-    if (existing && existing.src) await this.deleteGalleryFileByUrl(existing.src);
-    this.state.gallery = this.state.gallery.filter(g => g.id !== id);
   },
   // ---- applicants: Supabase 연동 ----
   // 정원 마감 판단용 총 신청 인원 (서버에서 합계만 계산해서 반환 — 개인정보 없음)

@@ -72,7 +72,7 @@
 | **참가 신청** | `/apply` | 4단계 폼: 유형 선택 → 약관 동의 → 정보 입력 → 신청 완료 |
 | **접수 확인** | `/lookup` | 이름·연락처·비밀번호로 신청 내역 조회 |
 | **공지사항** | `/notice` | 샘플 공지 6건 목록 (배지 · 상단 고정 · 상세 모달) |
-| **갤러리** | `/gallery` | AI 생성 이미지 6장 그리드 (임시) |
+| **갤러리** | `/gallery` | 저장소 `assets/gallery/` 정적 사진 그리드(PC·모바일 모두 한 줄 3장) · 한 페이지 12/24/48장 선택(기본 12, 브라우저에 기억) · 페이지 번호(주소 `?page=N` 유지) · 클릭 시 확대 뷰어(좌우 이동: ‹ › 버튼 · ←→ 키 · 스와이프 / 앞뒤 미리보기 PC 3장·모바일 2장 / 전체 사진 순회, 닫으면 마지막으로 본 사진의 페이지로 이동) · "사진 다운로드" 버튼으로 JPG 저장(브라우저에서 WebP→JPG 변환) |
 | **개인정보처리방침** | `/privacy` | 8개 조항 (수집 항목·목적·기간·제3자 제공·위탁·정보주체 권리 등) |
 | **이용약관** | `/terms` | 8개 조항 (목적·용어 정의·서비스 제공·참가자/회사 의무·책임 제한 등) |
 | **환불정책** | `/refund` | 5개 조항 (환불 기준표·불가 사유·전액 환불 사유·신청 방법·문의처) |
@@ -88,7 +88,6 @@
 | **참가자 관리** | `/admin/applicants` | 검색 · 유형/페이스 필터 · 상세 보기 · 수정 · 삭제 · CSV(엑셀) 다운로드 |
 | **취소 내역** | `/admin/cancelled` | 참가자 본인이 취소한 신청 백업 조회 (읽기 전용) — 입금대기 상태일 때만 본인 취소 가능, 취소 시 `applicants_cancelled`에 스냅샷 보관 후 `applicants`에서 삭제 |
 | **공지사항** | `/admin/notice` | 작성 · 수정 · 삭제 · 상단 고정 · 구분(중요/안내/이벤트) · 이미지 첨부 |
-| **갤러리** | `/admin/gallery` | 이미지 다중 업로드(자동 압축) · 삭제 |
 | **행사 정보** | `/admin/event` | 대회명 · 일시 · 장소 · 참가비 · 접수 기간 · **모집 정원(전체)** · **입금 계좌** 실시간 편집 |
 
 ### 3. 디자인 시스템
@@ -135,16 +134,19 @@ Supabase 테이블 (supabase_schema.sql 참조)
   ├─ event          단일 행(id=1), 대회 정보·접수기간·모집정원·입금계좌
   ├─ pace_groups    master/runner/starter 고정 3행, 신청 인원 통계 전용 (정원 없음)
   ├─ notices        공지사항 (이미지 첨부 가능 · notices 버킷)
-  ├─ gallery        갤러리 (이미지는 gallery 버킷)
+  ├─ gallery        (더 이상 사용 안 함 — 갤러리는 정적 파일로 전환)
   └─ applicants     참가 신청자 (개인/가족/단체 공용, JSONB members)
 
-Storage 버킷: gallery, notices (둘 다 공개 버킷, 업로드 시 자동 압축)
+Storage 버킷: notices (공개 버킷, 업로드 시 자동 압축)
+  · gallery 버킷은 더 이상 사용 안 함 (Cached Egress 한도 초과로 정적 파일로 전환)
+
+갤러리 사진: assets/gallery/{full,thumb}/*.webp + manifest.json (Vercel 정적 파일)
 
 sessionStorage['rr_admin_session']  // 관리자 로그인 세션 (여전히 클라이언트 전용)
 ```
 
 **동작 흐름**:
-1. 페이지 로딩 시 `event`/`pace_groups`/`notices`/`gallery`를 Supabase에서 비동기로 읽어 `RR_STORE.state`에 채움
+1. 페이지 로딩 시 `event`/`pace_groups`/`notices`를 Supabase에서 비동기로 읽어 `RR_STORE.state`에 채움
 2. `applicants`는 개인정보 노출을 줄이기 위해 **전체 목록을 절대 미리 불러오지 않음** — 정원 체크는 합계 숫자만(`total_applied_count` RPC), 접수확인은 일치 건 1개만(`lookup_applicant` RPC) 서버에서 계산해 받음. 관리자 화면(대시보드·참가자 관리) 진입 시에만 전체 목록을 불러옴
 3. 등록·수정·삭제는 각 기능마다 즉시 Supabase에 반영 (더 이상 `RR_STORE.save()`로 로컬에 모아두지 않음)
 4. `pace_groups.applied`는 DB 트리거(`recalc_pace_applied`)가 `applicants` 변경 시마다 자동 재계산
@@ -203,8 +205,14 @@ Supabase 연결에 필요한 값(`assets/js/supabase-client.js`의 URL/anon key)
 - 필요 시 iframe 임베드 또는 API 연동으로 대체 가능
 
 ### 3. 갤러리 이미지
-- `assets/img/gallery-*.jpg` 6장은 초기 개발 시 사용한 AI 생성 샘플 이미지로, **로컬 파일로만 남아있고 실제 사이트 갤러리 화면에는 표시되지 않습니다** (갤러리는 이제 Supabase `gallery` 테이블/버킷을 그대로 읽으며, 현재 비어 있는 상태)
-- 실제 사진은 관리자 페이지(`/admin/gallery`)에서 업로드해야 화면에 노출됨 (업로드 시 자동 압축)
+- Supabase 무료 플랜의 Cached Egress(이미지 전송량) 한도 초과로, 갤러리는 **GitHub 저장소의 정적 파일(Vercel 배포)** 로 전환함. 관리자 갤러리 메뉴는 제거됨
+- 사진 추가 방법 (`tools/gallery/build-gallery.mjs`):
+  1. `cd tools/gallery` → `npm install` (최초 1회)
+  2. `node build-gallery.mjs "원본사진폴더"` — 원본을 WebP로 변환해 `assets/gallery/full/`(긴 변 2000px)·`thumb/`(긴 변 640px)에 저장하고 `manifest.json` 재생성. 이미 변환된 사진은 건너뜀. 세로 사진은 EXIF 방향 정보대로 세로로 저장됨
+  3. `assets/gallery/` 변경분을 커밋·푸시 → Vercel 배포 후 반영
+- 사진 빼기: `full/`·`thumb/`에서 같은 이름 파일을 지우고 `node build-gallery.mjs`(폴더 없이) 실행 → manifest만 재생성
+- 원본 고화질 사진은 저장소에 넣지 말고 별도 보관 (변환본 기준 1,300장 ≈ 500MB 예상)
+- 정렬은 파일명 순 (출력 파일명 = 원본 이름의 영문/숫자 부분 + 내용 해시 8자리)
 
 ---
 

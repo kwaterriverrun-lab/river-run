@@ -1,0 +1,13 @@
+{
+  "name": "rr-gallery-build",
+  "private": true,
+  "type": "module",
+  "description": "갤러리 원본 사진 → WebP(원본/썸네일) 변환 + manifest.json 생성",
+  "scripts": {
+    "build": "node build-gallery.mjs",
+    "manifest": "node build-gallery.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.33.5"
+  }
+}

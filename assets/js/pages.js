@@ -1019,22 +1019,36 @@ function pageNotice() {
 // ========================================================================
 // GALLERY
 // ========================================================================
+// 사진은 저장소의 assets/gallery/ (tools/gallery 스크립트로 생성) — 목록은 manifest.json을
+// 페이지 진입 시 불러와 선택한 장수(12/24/48)씩 페이지 번호로 나눠 표시 (app.js bindGallery)
 function pageGallery() {
-  const items = RR_STORE.state.gallery.map(g => `
-    <button class="gallery-item zoom-trigger" type="button" data-zoom-src="${g.src}" aria-label="갤러리 이미지 확대">
-      <img src="${g.src}" alt="${g.caption}" loading="lazy">
-      <span class="course-card-zoom-hint">클릭하여 확대</span>
-    </button>
-  `).join('');
-
   return `
     ${pageHeaderBlock('갤러리', '갤러리')}
     <section class="section">
       <div class="container">
-        ${items ? `<div class="gallery-grid">${items}</div>` : '<div class="empty">등록된 이미지가 없습니다.</div>'}
+        <div class="gallery-toolbar" id="galleryToolbar" hidden>
+          <span class="gallery-total" id="galleryTotal"></span>
+          <div class="gallery-size" role="group" aria-label="한 페이지에 보일 사진 수">
+            <span class="gallery-size-label">보기</span>
+            ${[12, 24, 48].map(n => `<button type="button" class="gallery-size-btn" data-size="${n}">${n}</button>`).join('')}
+          </div>
+        </div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+        <div class="empty" id="galleryStatus">사진을 불러오는 중입니다…</div>
+        <nav class="gallery-pagination" id="galleryPagination" aria-label="갤러리 페이지"></nav>
       </div>
     </section>
   `;
+}
+
+// offset: 전체 목록에서 items[0]의 위치 (확대 뷰어에서 앞뒤 사진 이동용)
+function galleryItemsHtml(items, offset) {
+  return items.map((g, i) => `
+    <button class="gallery-item zoom-trigger" type="button" data-idx="${offset + i}" aria-label="갤러리 이미지 확대">
+      <img src="/assets/gallery/thumb/${g.f}" width="${g.w}" height="${g.h}" alt="" loading="lazy" decoding="async">
+      <span class="course-card-zoom-hint">클릭하여 확대</span>
+    </button>
+  `).join('');
 }
 
 // ========================================================================
@@ -1287,7 +1301,7 @@ function pageHeaderBlock(crumb, title) {
 }
 
 // Export
-window.RR_PAGES = { pageHome, pageAbout, pageEvent, pageApply, pageLookup, pageNotice, pageGallery, pagePrivacy, pageTerms, pageRefund };
+window.RR_PAGES = { pageHome, pageAbout, pageEvent, pageApply, pageLookup, pageNotice, pageGallery, galleryItemsHtml, pagePrivacy, pageTerms, pageRefund };
 window.RR_ICONS = Icon;
 window.RR_HELPERS = {
   renderApplyStep, renderStepper, renderIndividualForm, renderGroupForm, paceRadios, typeLabel,
